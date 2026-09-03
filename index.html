@@ -6,12 +6,6 @@
   <title>Deepu Ledger</title>
   <meta name="description" content="Family credit-card bills, EMIs and subscriptions — without rebuilding the sheet every month." />
   <meta name="theme-color" content="#9c2b20" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Deepu" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="assets/icon-180.png" />
   <link rel="icon" href="assets/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,14 +13,6 @@
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body data-view="bills" data-bill-pane="0">
-  <div id="install-bar" class="install-bar hidden" hidden>
-    <span id="install-copy">Install Deepu Ledger on this phone for the full-screen app.</span>
-    <div class="install-actions">
-      <button id="btn-install" class="btn primary" type="button">Install</button>
-      <button id="btn-install-dismiss" class="btn ghost" type="button">Not now</button>
-    </div>
-  </div>
-
   <div id="lock-screen" class="lock hidden" hidden aria-hidden="true">
     <div class="lock-card">
       <p class="eyebrow">Deepu Ledger</p>
@@ -75,7 +61,7 @@
             <button id="cycle-next" class="icon-btn" type="button" aria-label="Next cycle">›</button>
           </div>
           <button id="btn-print" class="btn" type="button">Print</button>
-          <button id="btn-export" class="btn" type="button">Write to Sheet</button>
+          <button id="btn-export" class="btn" type="button">Backup to Sheet</button>
           <button id="btn-add-item" class="btn primary" type="button">Add purchase</button>
         </div>
       </header>

@@ -182,37 +182,24 @@ function gasRun(fn, ...args) {
 }
 
 const Store = {
-  async load() {
+  loadLocal() {
     migrateOldStorage();
-    if (inGas()) {
-      const remote = await gasRun("getAllData");
-      if (remote) return sanitizeData(remote);
-    }
-    const gasUrl = (JSON.parse(localStorage.getItem(LS_KEY) || "null") || {}).meta?.gasUrl;
-    if (gasUrl) {
-      try {
-        const res = await jsonp(gasUrl.replace(/\/$/, "") + "?action=load");
-        if (res && res.ok && res.data) {
-          const merged = sanitizeData(res.data);
-          merged.meta.gasUrl = gasUrl;
-          return merged;
-        }
-      } catch (err) {
-        console.warn(err);
-      }
-    }
     const local = localStorage.getItem(LS_KEY);
     return sanitizeData(local ? JSON.parse(local) : emptyData());
   },
 
-  async save(data) {
+  saveLocal(data) {
     localStorage.setItem(LS_KEY, JSON.stringify(data));
+    return { ok: true, where: "browser" };
+  },
+
+  async syncToSheet(data) {
+    const gasUrl = data.meta?.gasUrl;
+    if (!gasUrl) throw new Error("Paste the Apps Script URL in More first.");
     if (inGas()) {
       await gasRun("saveAllData", data);
       return { ok: true, where: "sheet" };
     }
-    const gasUrl = data.meta?.gasUrl;
-    if (!gasUrl) return { ok: true, where: "browser" };
     const payload = JSON.stringify(data);
     const size = 1400;
     const chunks = [];
@@ -228,10 +215,25 @@ const Store = {
     return { ok: true, where: "sheet" };
   },
 
+  async loadFromSheet(gasUrl) {
+    if (!gasUrl) throw new Error("Paste the Apps Script URL first.");
+    if (inGas()) {
+      const remote = await gasRun("getAllData");
+      const merged = sanitizeData(remote);
+      merged.meta.gasUrl = gasUrl;
+      return merged;
+    }
+    const res = await jsonp(gasUrl.replace(/\/$/, "") + "?action=load");
+    if (!res || !res.ok || !res.data) throw new Error(res?.error || "Could not load Sheet");
+    const merged = sanitizeData(res.data);
+    merged.meta.gasUrl = gasUrl;
+    return merged;
+  },
+
   async exportBills(personName, leftMonth, rightMonth) {
     if (inGas()) return gasRun("generateFormattedBills", personName, leftMonth, rightMonth);
     const gasUrl = state.data.meta?.gasUrl;
-    if (!gasUrl) throw new Error("Connect Google Sheets in Settings first.");
+    if (!gasUrl) throw new Error("Set up a Sheet backup in More first.");
     const url = `${gasUrl.replace(/\/$/, "")}?action=export&person=${encodeURIComponent(personName)}&left=${encodeURIComponent(leftMonth)}&right=${encodeURIComponent(rightMonth)}`;
     const res = await jsonp(url);
     if (!res || !res.ok) throw new Error(res?.error || "Export failed");
@@ -248,7 +250,6 @@ const state = {
   leftMonth: "Sep 26",
   billPane: 0,
   saving: false,
-  deferredInstall: null,
 };
 
 function visibleBillMonth() {
@@ -388,17 +389,9 @@ function buildBill(personId, monthKey) {
 }
 
 async function persist(flash) {
-  try {
-    state.saving = true;
-    const res = await Store.save(state.data);
-    if (flash) toast(flash);
-    return res;
-  } catch (err) {
-    toast(err.message || "Could not save", true);
-    return null;
-  } finally {
-    state.saving = false;
-  }
+  Store.saveLocal(state.data);
+  if (flash) toast(flash);
+  return { ok: true, where: "browser" };
 }
 
 function toast(msg, isErr) {
@@ -676,34 +669,32 @@ function renderSettings() {
   const m = state.data.meta;
   $("view-settings").innerHTML = `
     <div class="settings-block">
-      <h3>Install on your phone</h3>
-      <p class="hint">Same app as the computer. Add it to the home screen and it opens full-screen, even offline.</p>
-      <p class="ios-tip" id="ios-install-tip" hidden></p>
+      <h3>This device</h3>
+      <p class="hint">Purchases, EMIs and people save in this browser automatically. Google is only for an optional backup — it is not asked when you add a bill.</p>
       <div class="modal-actions" style="justify-content:flex-start;margin-top:8px">
-        <button class="btn primary" id="btn-install-settings" type="button">Install app</button>
         <button class="btn" id="btn-open-cards" type="button">Credit cards</button>
       </div>
     </div>
     <div class="settings-block">
-      <h3>Connect Google Sheet</h3>
-      <p class="ios-tip">If Google blocks the next screen, use <b>Advanced</b> then <b>Go to … (unsafe)</b>. You are the developer. Google only shows that warning because this ledger is not a Play Store app.</p>
+      <h3>Optional Google Sheet backup</h3>
+      <p class="hint">Skip this unless you want the same ledger on another phone. Adding a purchase will never open a Google login.</p>
       <ol class="setup-steps">
         <li>Create a Google Sheet named <b>Deepu Ledger</b>.</li>
-        <li>In that Sheet: <b>Extensions → Apps Script</b>. Delete the starter function.</li>
-        <li>Open <a href="${GAS_CODE_URL}" target="_blank" rel="noopener">Code.gs</a>, copy all, paste into Apps Script <code>Code.gs</code>.</li>
-        <li>In Apps Script click <b>+</b> → <b>HTML</b>, name it exactly <code>Index</code>. Open <a href="${GAS_HTML_URL}" target="_blank" rel="noopener">Index.html</a>, copy all, paste there.</li>
+        <li><b>Extensions → Apps Script</b>. Delete the starter function.</li>
+        <li>Copy <a href="${GAS_CODE_URL}" target="_blank" rel="noopener">Code.gs</a> into <code>Code.gs</code>.</li>
+        <li>Add an HTML file named exactly <code>Index</code> and paste <a href="${GAS_HTML_URL}" target="_blank" rel="noopener">Index.html</a>.</li>
         <li><b>Deploy → New deployment → Web app</b>. Execute as <b>Me</b>. Who has access: <b>Anyone</b>.</li>
-        <li>Google will say <b>“Google hasn’t verified this app”</b>. That is normal for your own script. Click <b>Advanced</b> → <b>Go to Deepu Ledger (unsafe)</b> → <b>Allow</b>. It is your account (<code>mchaitanyanathsingh@gmail.com</code>) talking to your own Sheet — not a third-party app.</li>
-        <li>Copy the URL that ends with <code>/exec</code>, paste it below, tap <b>Save &amp; connect</b>.</li>
+        <li>If Google says it has not verified the app, click <b>Advanced</b> → <b>Go to … (unsafe)</b> → <b>Allow</b>. That step happens only here, once.</li>
+        <li>Paste the <code>/exec</code> URL below and tap <b>Backup now</b>.</li>
       </ol>
       <label>Web app URL
         <input id="gas-url" value="${esc(m.gasUrl || "")}" placeholder="https://script.google.com/macros/s/…/exec" />
       </label>
       <div class="modal-actions" style="margin-top:12px">
-        <button class="btn" id="btn-load-sheet" type="button">Load from Sheet</button>
-        <button class="btn primary" id="btn-save-sheet" type="button">Save &amp; connect</button>
+        <button class="btn" id="btn-load-sheet" type="button">Load backup</button>
+        <button class="btn primary" id="btn-save-sheet" type="button">Backup now</button>
       </div>
-      <p class="muted" id="sheet-status">${m.gasUrl ? "Sheet URL is saved in this browser. Use Load from Sheet if this device is behind." : "Not connected yet — bills stay only on this device."}</p>
+      <p class="muted" id="sheet-status">${m.gasUrl ? "Backup URL is saved. Daily edits stay on this device until you tap Backup now." : "Not used. Everything stays on this device."}</p>
     </div>
     <div class="settings-block">
       <h3>PIN lock</h3>
@@ -721,31 +712,37 @@ function renderSettings() {
     </div>`;
   $("btn-save-sheet").onclick = async () => {
     state.data.meta.gasUrl = $("gas-url").value.trim();
-    $("sheet-status").textContent = "Saving…";
+    Store.saveLocal(state.data);
+    if (!state.data.meta.gasUrl) {
+      $("sheet-status").textContent = "URL cleared. Bills stay on this device.";
+      return;
+    }
+    $("sheet-status").textContent = "Backing up…";
     try {
-      const res = await persist();
-      $("sheet-status").textContent = res?.where === "sheet"
-        ? "Connected. New entries will save to your Google Sheet."
-        : (state.data.meta.gasUrl
-          ? "URL saved. If Google blocked the save, set access to Anyone and try again."
-          : "Saved on this device only.");
-      toast("Settings saved");
+      await Store.syncToSheet(state.data);
+      $("sheet-status").textContent = "Backup saved to Google Sheet. Daily edits still stay on this device until you tap Backup now again.";
+      toast("Sheet backup saved");
     } catch (err) {
       $("sheet-status").textContent = err.message;
+      toast(err.message, true);
     }
   };
   $("btn-load-sheet").onclick = async () => {
-    state.data.meta.gasUrl = $("gas-url").value.trim();
-    localStorage.setItem(LS_KEY, JSON.stringify(state.data));
+    const url = $("gas-url").value.trim();
+    state.data.meta.gasUrl = url;
+    Store.saveLocal(state.data);
+    if (!url) return toast("Paste the Apps Script URL first", true);
     $("sheet-status").textContent = "Loading…";
     try {
-      const data = await Store.load();
+      const data = await Store.loadFromSheet(url);
       state.data = data;
       state.personId = data.people[0]?.id || null;
+      Store.saveLocal(state.data);
       render();
       toast("Loaded from Sheet");
     } catch (err) {
       $("sheet-status").textContent = err.message;
+      toast(err.message, true);
     }
   };
   $("btn-save-pin").onclick = async () => {
@@ -773,12 +770,6 @@ function renderSettings() {
     render();
   };
   $("btn-open-cards").onclick = () => { state.view = "cards"; render(); };
-  $("btn-install-settings").onclick = () => promptInstall(true);
-  const tip = $("ios-install-tip");
-  if (isIos() && !isStandalone()) {
-    tip.hidden = false;
-    tip.textContent = "iPhone / iPad: open this page in Safari, tap Share, then Add to Home Screen.";
-  }
 }
 
 function tableOrEmpty(arr, fn) {
@@ -1081,9 +1072,14 @@ function bindChrome() {
   $("btn-export").onclick = async () => {
     const person = currentPerson();
     if (!person) return toast("Add a person first", true);
+    if (!state.data.meta?.gasUrl) {
+      toast("Bills already save on this device. Set up a Sheet backup in More only if you want one.", true);
+      return;
+    }
     const right = addMonthsObj(parseMonth(state.leftMonth), 1).key;
     try {
       toast("Writing bill tab…");
+      await Store.syncToSheet(state.data);
       const name = await Store.exportBills(person.name, state.leftMonth, right);
       toast("Wrote tab: " + (name || `${person.name} ${cycleLabel(state.leftMonth)}`));
     } catch (err) {
@@ -1115,14 +1111,9 @@ function maybeLock() {
 }
 
 async function init() {
+  removeInstallHooks();
   bindChrome();
-  try {
-    state.data = await Store.load();
-  } catch (err) {
-    state.data = JSON.parse(localStorage.getItem(LS_KEY) || "null") || emptyData();
-    state.data = sanitizeData(state.data);
-    toast("Working offline from this browser", true);
-  }
+  state.data = Store.loadLocal();
   if (!state.data || !Array.isArray(state.data.people)) state.data = emptyData();
   state.personId = state.data.people[0]?.id || null;
   const now = new Date();
@@ -1130,65 +1121,17 @@ async function init() {
   const parsed = parseMonth(thisMonth);
   state.leftMonth = parsed.m % 2 === 0 ? thisMonth : addMonthsObj(parsed, -1).key;
   maybeLock();
-  setupPwa();
   render();
 }
 
-function isIos() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-}
-
-function isStandalone() {
-  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-}
-
-function setupPwa() {
-  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-  }
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    state.deferredInstall = e;
-    showInstallBar("Install Deepu Ledger on this phone for the full-screen app.");
+function removeInstallHooks() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
   });
-  if (isIos() && !isStandalone() && !sessionStorage.getItem("deepu-install-dismissed")) {
-    showInstallBar("iPhone: tap Share, then Add to Home Screen.");
-    $("btn-install").textContent = "How?";
+  if (window.caches) {
+    caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
   }
-  $("btn-install").onclick = () => promptInstall(true);
-  $("btn-install-dismiss").onclick = () => {
-    sessionStorage.setItem("deepu-install-dismissed", "1");
-    hideInstallBar();
-  };
-}
-
-function showInstallBar(copy) {
-  if (isStandalone()) return;
-  const bar = $("install-bar");
-  $("install-copy").textContent = copy;
-  bar.hidden = false;
-  bar.classList.remove("hidden");
-}
-
-function hideInstallBar() {
-  $("install-bar").hidden = true;
-  $("install-bar").classList.add("hidden");
-}
-
-async function promptInstall(fromSettings) {
-  if (state.deferredInstall) {
-    state.deferredInstall.prompt();
-    await state.deferredInstall.userChoice;
-    state.deferredInstall = null;
-    hideInstallBar();
-    return;
-  }
-  if (isIos()) {
-    toast("Safari → Share → Add to Home Screen");
-    showInstallBar("iPhone: tap Share, then Add to Home Screen.");
-    return;
-  }
-  if (fromSettings) toast("Use your browser menu: Install app / Add to Home screen");
 }
 
 init();

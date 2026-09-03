@@ -8,20 +8,13 @@ Log a purchase once, assign it to a person, and the bill totals itself. EMIs inc
 
 **https://chaitanyanathsingh.github.io/DeepuApp/**
 
-Open that on a computer or phone. On a phone: Android Chrome → Install app, or iPhone Safari → Share → Add to Home Screen.
+Open that on a computer or phone. The layout fits small screens; there is no app-store / install step.
 
-## Phone app (free)
-
-This is a Progressive Web App — the same ledger, installable on a phone. No Play Store / App Store fee.
-
-1. Open the site on the phone (Safari on iPhone, Chrome on Android).
-2. **Android:** tap **Install** when asked, or Chrome menu → **Install app**.
-3. **iPhone / iPad:** Share → **Add to Home Screen**.
-4. The Deepu icon sits with your other apps and opens full-screen. Bills stay on the phone and still sync to Google Sheets when connected.
+## Phone layout
 
 On a small screen you see one month at a time. Tap Sep / Oct on the summary cards, or swipe the bill, to switch. The bottom bar is Bills, EMIs, Monthly, People, More.
 
-On a computer, open `index.html` or http://127.0.0.1:8765/ — the layout uses a sidebar and both months side by side.
+On a computer the layout uses a sidebar and both months side by side.
 
 
 ## Free website (GitHub Pages)
@@ -31,9 +24,9 @@ The site URL will be:
 
 `https://<your-username>.github.io/DeepuApp/`
 
-## Connect Google Sheets (do this now)
+## Optional Google Sheet backup
 
-The public site starts **empty**. To keep bills in your Google account:
+Daily add/edit stays on this device and never asks Google to sign in. Only **More → Backup now** or **Backup to Sheet** talks to Google.
 
 1. Create a Google Sheet named **Deepu Ledger**.
 2. **Extensions → Apps Script**. Delete the starter function.
@@ -46,7 +39,7 @@ The public site starts **empty**. To keep bills in your Google account:
 7. Copy the URL ending in `/exec`.
 8. In Deepu Ledger open **More → Connect Google Sheet**, paste the URL, tap **Save & connect**.
 
-**Write to Sheet** on Bills creates a formatted tab such as `Chinnu Sep-Oct 26`.
+**Backup to Sheet** (after a backup URL is set) creates a formatted tab such as `Chinnu Sep-Oct 26`.
 
 ## Typical month
 

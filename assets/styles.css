@@ -41,24 +41,6 @@ p { margin: 0; }
 
 .hidden, [hidden] { display: none !important; }
 
-.install-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  padding-left: calc(14px + var(--safe-left));
-  padding-right: calc(14px + var(--safe-right));
-  background: var(--ink);
-  color: var(--paper-2);
-  font-size: 13px;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-}
-.install-bar .install-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
 .app {
   display: grid;
   grid-template-columns: var(--rail) minmax(0, 1fr);
@@ -482,13 +464,9 @@ body:not([data-view="bills"]) #btn-add-item { display: none; }
   .statement-head, .sum-row { grid-template-columns: 1fr 1fr auto; }
 }
 
-@media (min-width: 980px) {
-  .install-bar { padding-left: calc(var(--rail) + 14px); }
-}
-
 @media print {
   body { background: #fff; }
-  .rail, .topbar, .add-inline, .due-strip, .nav, .btn, .icon-btn, .dock, .install-bar { display: none !important; }
+  .rail, .topbar, .add-inline, .due-strip, .nav, .btn, .icon-btn, .dock { display: none !important; }
   .app { display: block; }
   .main { padding: 0; }
   .bills-pair { display: grid !important; grid-template-columns: 1fr 1fr; gap: 12px; }
