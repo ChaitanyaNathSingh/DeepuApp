@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Deepu Ledger</title>
+  <meta name="description" content="Family credit-card bills, EMIs and subscriptions — without rebuilding the sheet every month." />
+  <meta name="theme-color" content="#9c2b20" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Deepu" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="icon" href="assets/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+:root {
+  --paper: #efe7d6;
+  --paper-2: #f7f1e6;
+  --ink: #1c1916;
+  --muted: #6f675c;
+  --line: #d4c7b0;
+  --crimson: #9c2b20;
+  --cobalt: #1d4e89;
+  --sage: #2f4f3e;
+  --shadow: 0 18px 50px rgba(28, 25, 22, 0.12);
+  --rail: clamp(220px, 22vw, 280px);
+  --radius: 18px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --dock-h: 0px;
+  --title: clamp(1.35rem, 1.1rem + 1.2vw, 2rem);
+  --text: clamp(0.9rem, 0.84rem + 0.25vw, 1rem);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; min-height: 100%; min-height: 100dvh; }
+body {
+  font-family: "Sora", system-ui, -apple-system, sans-serif;
+  font-size: var(--text);
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #f4e7c8 0%, transparent 50%),
+    linear-gradient(180deg, #e8dfcc 0%, var(--paper) 40%);
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
+button, input, select, textarea { font: inherit; font-size: 16px; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3 { font-family: "Fraunces", Georgia, serif; font-weight: 650; margin: 0; }
+h1 { font-size: var(--title); line-height: 1.15; }
+p { margin: 0; }
+
+.hidden, [hidden] { display: none !important; }
+
+.install-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  padding-left: calc(14px + var(--safe-left));
+  padding-right: calc(14px + var(--safe-right));
+  background: var(--ink);
+  color: var(--paper-2);
+  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.install-bar .install-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.app {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  padding: calc(18px + var(--safe-top)) 16px 18px calc(16px + var(--safe-left));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-right: 1px solid var(--line);
+  background: rgba(247, 241, 230, 0.84);
+  backdrop-filter: blur(12px);
+}
+
+.brand { display: flex; gap: 12px; align-items: center; padding: 4px 8px 8px; }
+.brand .mark {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--crimson); color: var(--paper-2);
+  display: grid; place-items: center;
+  font-family: "Fraunces", serif; font-weight: 650; font-size: 20px;
+}
+.brand strong { display: block; font-size: 15px; letter-spacing: 0.04em; }
+.brand em { font-style: normal; color: var(--muted); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+
+.nav { display: grid; gap: 4px; }
+.nav-btn {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  min-height: 44px;
+  border-radius: 10px;
+  color: var(--muted);
+}
+.rail .nav-btn.active, .rail .nav-btn:hover { background: #fff7ea; color: var(--ink); }
+
+.people-rail {
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  flex: 1;
+  padding-right: 4px;
+  min-height: 0;
+}
+.person-chip {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 10px;
+  min-height: 48px;
+  border-radius: 12px;
+  text-align: left;
+}
+.person-chip.active { background: #fff; border-color: var(--line); box-shadow: 0 4px 16px rgba(28,25,22,.06); }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  color: #fff; font-size: 12px; font-weight: 600; flex-shrink: 0;
+}
+.person-chip small { display: block; color: var(--muted); font-size: 11px; }
+
+.main {
+  padding: calc(24px + var(--safe-top)) clamp(14px, 3vw, 32px) calc(48px + var(--safe-bottom) + var(--dock-h));
+  min-width: 0;
+}
+.topbar {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 4px;
+}
+.top-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cycle-nav {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 10px;
+}
+#cycle-label { font-size: 13px; font-weight: 600; min-width: 92px; text-align: center; }
+
+.btn, .icon-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 10px 14px;
+  min-height: 44px;
+}
+.icon-btn { width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+.btn.primary { background: var(--sage); color: #f4efe4; border-color: var(--sage); }
+.btn.danger { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+.btn.ghost { background: transparent; }
+.btn.full { width: 100%; }
+.btn:hover { filter: brightness(1.05); }
+
+.bills-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(12px, 2vw, 22px);
+}
+.statement {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-height: min(640px, 70dvh);
+  display: flex;
+  flex-direction: column;
+}
+.statement-head,
+.row,
+.sum-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 118px) minmax(0, 1fr) minmax(72px, 120px);
+  gap: 8px;
+  align-items: start;
+}
+.statement-head {
+  padding: 14px 16px;
+  background: #1c1916;
+  color: #f7f1e6;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.statement-head span:last-child { text-align: right; }
+.statement-body { padding: 8px 8px 0; flex: 1; }
+.row {
+  padding: 10px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.row:hover, .row:active { background: rgba(156, 43, 32, 0.05); }
+.row .amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+.row .date { color: var(--muted); font-size: 12px; word-break: break-word; }
+.row span:nth-child(2) { overflow-wrap: anywhere; }
+.row.blank { min-height: 28px; }
+.row.pending .amt { color: var(--muted); }
+
+.statement-gap { height: 28px; border-bottom: 1px dashed var(--line); margin: 6px 16px 10px; }
+
+.statement-foot { padding: 6px 8px 14px; }
+.sum-row { padding: 8px; font-size: 13px; font-weight: 600; }
+.sum-row .crimson { color: var(--crimson); }
+.sum-row .cobalt { color: var(--cobalt); }
+.sum-row .right { text-align: right; font-variant-numeric: tabular-nums; }
+
+.add-inline {
+  margin: 6px 8px 12px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  width: calc(100% - 16px);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 44px;
+}
+
+.due-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.due-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.due-card b { font-family: "Fraunces", serif; font-size: clamp(1.1rem, 0.9rem + 1vw, 1.4rem); display: block; margin-top: 4px; overflow-wrap: anywhere; }
+.due-card.total { background: var(--ink); color: var(--paper-2); border-color: var(--ink); }
+.due-card.total span { color: #d4c7b0; }
+.due-card[data-pane] { cursor: pointer; }
+.due-card.active { outline: 2px solid var(--sage); }
+
+.table-wrap, .card-list { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 520px; }
+th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); font-size: 13px; }
+th { color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; background: #fbf6ec; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid .full { grid-column: 1 / -1; }
+label { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+input, select, textarea {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--ink);
+  width: 100%;
+  max-width: 100%;
+}
+textarea { min-height: 90px; resize: vertical; }
+
+.modal {
+  position: fixed; inset: 0; background: rgba(28,25,22,.38);
+  display: grid; place-items: center; padding: 20px; z-index: 20;
+  padding-left: calc(20px + var(--safe-left));
+  padding-right: calc(20px + var(--safe-right));
+}
+.modal-card {
+  width: min(560px, 100%);
+  background: var(--paper-2);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  max-height: 90dvh;
+  overflow: auto;
+}
+.modal-card h2 { margin-bottom: 14px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+.lock {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  background: var(--paper); z-index: 40;
+  padding: calc(20px + var(--safe-top)) 16px calc(20px + var(--safe-bottom));
+}
+.lock-card { width: min(380px, 92vw); background: #fff; padding: 28px; border-radius: 20px; border: 1px solid var(--line); }
+.lock-card h1 { margin: 8px 0 6px; }
+.lock-card input { width: 100%; margin: 16px 0 10px; }
+
+.muted { color: var(--muted); }
+.error { color: var(--crimson); font-size: 13px; }
+.hint { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 0 16px; }
+.toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
+
+.settings-block {
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  padding: 18px; margin-bottom: 14px;
+}
+code { background: #efe7d6; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+
+body:not([data-view="bills"]) .cycle-nav,
+body:not([data-view="bills"]) #btn-export,
+body:not([data-view="bills"]) #btn-print,
+body:not([data-view="bills"]) #btn-add-item { display: none; }
+
+.dock { display: none; }
+.toast {
+  position: fixed;
+  right: calc(16px + var(--safe-right));
+  bottom: calc(16px + var(--safe-bottom) + var(--dock-h));
+  background: #1c1916;
+  color: #f7f1e6;
+  padding: 10px 14px;
+  border-radius: 12px;
+  z-index: 50;
+  font-size: 13px;
+  max-width: min(280px, calc(100vw - 32px));
+}
+
+.ios-tip { background: #fff7ea; border: 1px dashed var(--line); border-radius: 12px; padding: 12px; font-size: 13px; line-height: 1.45; }
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .due-strip { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+}
+
+/* Phone + small tablet: app chrome */
+@media (max-width: 979px) {
+  :root { --dock-h: 64px; }
+  .app { grid-template-columns: 1fr; }
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    height: auto;
+    max-height: none;
+    flex-direction: column;
+    gap: 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: calc(10px + var(--safe-top)) 12px 10px;
+  }
+  .brand { display: none; }
+  .rail .nav, .rail .btn.ghost.full { display: none; }
+  .people-rail {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 0 2px 4px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .person-chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    background: rgba(255,255,255,.55);
+    border-color: var(--line);
+  }
+  .topbar { flex-direction: column; align-items: stretch; }
+  .top-actions { width: 100%; }
+  .cycle-nav { flex: 1; justify-content: space-between; }
+  #btn-print { display: none; }
+  body[data-view="bills"] #btn-add-item {
+    position: fixed;
+    right: calc(16px + var(--safe-right));
+    bottom: calc(18px + var(--safe-bottom) + var(--dock-h));
+    z-index: 15;
+    box-shadow: var(--shadow);
+  }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar .btn { width: 100%; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid .full { grid-column: auto; }
+  .dock {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 16;
+    background: rgba(247, 241, 230, 0.96);
+    border-top: 1px solid var(--line);
+    padding: 4px 6px calc(4px + var(--safe-bottom));
+    backdrop-filter: blur(14px);
+  }
+  .dock .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    padding: 6px 2px;
+    min-height: 52px;
+    border-radius: 12px;
+  }
+  .dock .nav-btn.active { color: var(--ink); background: #fff; }
+  .dock svg { width: 20px; height: 20px; }
+  .modal {
+    place-items: end center;
+    padding: 0;
+  }
+  .modal-card {
+    width: 100%;
+    max-width: none;
+    border-radius: 20px 20px 0 0;
+    max-height: 92dvh;
+    padding-bottom: calc(18px + var(--safe-bottom));
+  }
+  .people-row {
+    grid-template-columns: 40px 1fr !important;
+    gap: 10px;
+  }
+  .people-row .table-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  body:not([data-view="bills"]) #btn-add-item { display: none; }
+}
+
+/* Single-month bill on narrow phones */
+@media (max-width: 699px) {
+  .bills-pair { grid-template-columns: 1fr; }
+  body[data-bill-pane="0"] .statement:nth-child(2) { display: none; }
+  body[data-bill-pane="1"] .statement:nth-child(1) { display: none; }
+  .statement { min-height: 0; }
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap th,
+  .table-wrap td,
+  .table-wrap tr { display: block; }
+  .table-wrap table { min-width: 0; }
+  .table-wrap thead { display: none; }
+  .table-wrap tr {
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .table-wrap td {
+    border: 0;
+    padding: 4px 0;
+    text-align: left;
+  }
+  .table-wrap td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .table-wrap td.num { text-align: left; }
+  .table-wrap .table-actions { justify-content: flex-start; margin-top: 8px; }
+  .table-wrap td.actions::before { display: none; }
+}
+
+@media (max-width: 520px) {
+  .statement-head, .row, .sum-row {
+    grid-template-columns: 64px minmax(0, 1fr) 86px;
+    gap: 4px;
+    font-size: 12px;
+  }
+  .due-card { padding: 12px; }
+}
+
+@media (max-width: 380px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "date amt" "desc amt";
+  }
+  .row .date { grid-area: date; }
+  .row span:nth-child(2) { grid-area: desc; }
+  .row .amt { grid-area: amt; align-self: center; }
+  .statement-head, .sum-row { grid-template-columns: 1fr 1fr auto; }
+}
+
+@media (min-width: 980px) {
+  .install-bar { padding-left: calc(var(--rail) + 14px); }
+}
+
+@media print {
+  body { background: #fff; }
+  .rail, .topbar, .add-inline, .due-strip, .nav, .btn, .icon-btn, .dock, .install-bar { display: none !important; }
+  .app { display: block; }
+  .main { padding: 0; }
+  .bills-pair { display: grid !important; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .statement { display: flex !important; box-shadow: none; min-height: 0; break-inside: avoid; }
+}
+
+</style>
+</head>
+<body data-view="bills" data-bill-pane="0">
+  <div id="install-bar" class="install-bar hidden" hidden>
+    <span id="install-copy">Install Deepu Ledger on this phone for the full-screen app.</span>
+    <div class="install-actions">
+      <button id="btn-install" class="btn primary" type="button">Install</button>
+      <button id="btn-install-dismiss" class="btn ghost" type="button">Not now</button>
+    </div>
+  </div>
+
+  <div id="lock-screen" class="lock hidden" hidden aria-hidden="true">
+    <div class="lock-card">
+      <p class="eyebrow">Deepu Ledger</p>
+      <h1>Enter PIN</h1>
+      <p class="muted">This ledger is locked. Ask Deepu for the PIN.</p>
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="8" autocomplete="off" />
+      <button id="pin-unlock" class="btn primary" type="button">Unlock</button>
+      <p id="pin-error" class="error hidden"></p>
+    </div>
+  </div>
+
+  <div id="app" class="app">
+    <aside class="rail">
+      <div class="brand">
+        <span class="mark">D</span>
+        <div>
+          <strong>Deepu</strong>
+          <em>Ledger</em>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button data-view="bills" class="nav-btn active" type="button">Bills</button>
+        <button data-view="emis" class="nav-btn" type="button">EMIs</button>
+        <button data-view="subs" class="nav-btn" type="button">Monthly</button>
+        <button data-view="people" class="nav-btn" type="button">People</button>
+        <button data-view="cards" class="nav-btn" type="button">Cards</button>
+        <button data-view="settings" class="nav-btn" type="button">Settings</button>
+      </nav>
+
+      <div class="people-rail" id="people-rail"></div>
+
+      <button id="btn-add-person" class="btn ghost full" type="button">+ Add person</button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="top-eyebrow">Statement</p>
+          <h1 id="top-title">Family bills</h1>
+        </div>
+        <div class="top-actions">
+          <div class="cycle-nav">
+            <button id="cycle-prev" class="icon-btn" type="button" aria-label="Previous cycle">‹</button>
+            <span id="cycle-label">Sep–Oct 26</span>
+            <button id="cycle-next" class="icon-btn" type="button" aria-label="Next cycle">›</button>
+          </div>
+          <button id="btn-print" class="btn" type="button">Print</button>
+          <button id="btn-export" class="btn" type="button">Write to Sheet</button>
+          <button id="btn-add-item" class="btn primary" type="button">Add purchase</button>
+        </div>
+      </header>
+
+      <section id="view-bills" class="view"></section>
+      <section id="view-emis" class="view hidden" hidden></section>
+      <section id="view-subs" class="view hidden" hidden></section>
+      <section id="view-people" class="view hidden" hidden></section>
+      <section id="view-cards" class="view hidden" hidden></section>
+      <section id="view-settings" class="view hidden" hidden></section>
+    </main>
+  </div>
+
+  <nav class="dock" aria-label="Main">
+    <button data-view="bills" class="nav-btn active" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+      Bills
+    </button>
+    <button data-view="emis" class="nav-btn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+      EMIs
+    </button>
+    <button data-view="subs" class="nav-btn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      Monthly
+    </button>
+    <button data-view="people" class="nav-btn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 19c1-3 3.5-5 6-5s5 2 6 5"/><circle cx="17" cy="9" r="2"/><path d="M16 19c.4-1.8 1.6-3 3.2-3"/></svg>
+      People
+    </button>
+    <button data-view="settings" class="nav-btn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.2 6.2l1.4 1.4M16.4 16.4l1.4 1.4M17.8 6.2l-1.4 1.4M7.6 16.4l-1.4 1.4"/></svg>
+      More
+    </button>
+  </nav>
+
+  <div id="modal" class="modal hidden" hidden>
+    <div class="modal-card" id="modal-card"></div>
+  </div>
+
+  <script>
+/* Deepu Ledger — family credit-card bills, EMIs, and monthly charges */
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const PALETTE = ["#9c2b20","#2f4f3e","#1d4e89","#6b4c2a","#4a3d6b","#1e5c5c","#8b3a3a","#3d5a45"];
+const LS_KEY = "deepu-ledger-v1";
+const LS_PIN_OK = "deepu-ledger-unlocked";
+
+const $ = (id) => document.getElementById(id);
+
+function uid() {
+  return crypto.randomUUID ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+}
+
+function initials(name) {
+  return String(name || "?")
+    .split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+}
+
+function colorFor(name) {
+  let h = 0;
+  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) % PALETTE.length;
+  return PALETTE[h];
+}
+
+function formatINR(n) {
+  if (n === "" || n == null || Number.isNaN(Number(n))) return "";
+  return Number(n).toLocaleString("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2 });
+}
+
+function ordinal(n) {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return n + "th";
+  return n + ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th");
+}
+
+function parseMonth(s) {
+  if (!s) return null;
+  const [mon, yy] = String(s).trim().split(/\s+/);
+  const m = MONTHS.indexOf(mon);
+  if (m < 0) return null;
+  const y = 2000 + parseInt(yy, 10);
+  return { m, y, key: `${MONTHS[m]} ${String(y).slice(-2)}` };
+}
+
+function formatMonth(m, y) {
+  return `${MONTHS[m]} ${String(y).slice(-2)}`;
+}
+
+function addMonthsObj(obj, n) {
+  const d = new Date(obj.y, obj.m + n, 1);
+  return { m: d.getMonth(), y: d.getFullYear(), key: formatMonth(d.getMonth(), d.getFullYear()) };
+}
+
+function monthDiff(a, b) {
+  return (b.y - a.y) * 12 + (b.m - a.m);
+}
+
+function parseDate(s) {
+  if (!s || s === "Monthly") return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + "T12:00:00");
+  const m = String(s).trim().match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  if (m) {
+    const mi = MONTHS.findIndex((x) => x.toLowerCase() === m[2].toLowerCase());
+    if (mi >= 0) return new Date(+m[3], mi, +m[1], 12);
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatDate(s) {
+  if (!s) return "";
+  if (s === "Monthly") return "Monthly";
+  const d = parseDate(s);
+  if (!d) return s;
+  return `${String(d.getDate()).padStart(2, "0")}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+function toISODate(s) {
+  const d = parseDate(s) || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addCalendarMonths(dateStr, n) {
+  const d = parseDate(dateStr);
+  if (!d) return dateStr;
+  const day = d.getDate();
+  const nd = new Date(d.getFullYear(), d.getMonth() + n, 1);
+  const last = new Date(nd.getFullYear(), nd.getMonth() + 1, 0).getDate();
+  nd.setDate(Math.min(day, last));
+  return formatDate(nd);
+}
+
+function cycleLabel(left) {
+  const a = parseMonth(left);
+  const b = addMonthsObj(a, 1);
+  return `${MONTHS[a.m]}–${MONTHS[b.m]} ${String(b.y).slice(-2)}`;
+}
+
+function emptyData() {
+  return {
+    people: [],
+    cards: [
+      { id: uid(), name: "Card ICICI", closingDay: 22 },
+      { id: uid(), name: "Card Amex", closingDay: 25 },
+      { id: uid(), name: "Deepu SBI Card", closingDay: 22 },
+    ],
+    purchases: [],
+    emis: [],
+    subscriptions: [],
+    payments: [],
+    meta: { pin: "", gasUrl: "", defaultCardId: "" },
+  };
+}
+
+function demoData() {
+  const chinnu = { id: "p-chinnu", name: "Chinnu" };
+  return {
+    people: [chinnu, { id: "p-deepu", name: "Deepu" }, { id: "p-anu", name: "Anu" }],
+    cards: [
+      { id: "c-icici", name: "Card ICICI", closingDay: 22 },
+      { id: "c-amex", name: "Card Amex", closingDay: 25 },
+      { id: "c-sbi", name: "Deepu SBI Card", closingDay: 22 },
+    ],
+    purchases: [
+      { id: uid(), date: "11-Aug-2026", description: "Ray-ban Glasess", amount: 4000, personId: chinnu.id, billMonth: "Sep 26", cardId: "c-icici" },
+      { id: uid(), date: "", description: "GPay Bescom Bill Pay (2000)", amount: "", personId: chinnu.id, billMonth: "Oct 26", cardId: "c-icici" },
+      { id: uid(), date: "14-Jul-2026", description: "Prestige (Stove+3Ltr Cooker) Part 2 of 2", amount: 2059, personId: chinnu.id, billMonth: "Oct 26", cardId: "c-icici" },
+      { id: uid(), date: "08-Aug-2026", description: "Amazon (Razer Headphones) Half Payment", amount: 1814, personId: chinnu.id, billMonth: "Oct 26", cardId: "c-icici" },
+      { id: uid(), date: "12-Aug-2026", description: "Signature Hotel Lakshmipuram", amount: 2700, personId: chinnu.id, billMonth: "Oct 26", cardId: "c-icici" },
+    ],
+    emis: [
+      { id: uid(), title: "Gigabyte 5070Ti", personId: chinnu.id, amount: 2650, startBillMonth: "Sep 26", startDate: "07-Nov-2026", startN: 1, totalMonths: 24, note: "", cardId: "c-icici" },
+      { id: uid(), title: "Apple Mac Mini", personId: chinnu.id, amount: 7541, startBillMonth: "Sep 26", startDate: "09-Nov-2026", startN: 1, totalMonths: 12, note: "", cardId: "c-icici" },
+      { id: uid(), title: "RD hp Laptop", personId: chinnu.id, amount: 4795.92, startBillMonth: "Sep 26", startDate: "09-Nov-2026", startN: 5, totalMonths: 12, note: "Half", cardId: "c-icici" },
+    ],
+    subscriptions: [
+      { id: uid(), title: "iCloud+ 2TB Membership", personId: chinnu.id, amount: 143, active: true },
+      { id: uid(), title: "Airtel Postpaid Bill Payment (4444)", personId: chinnu.id, amount: 412.41, active: true },
+      { id: uid(), title: "Netflix Membership", personId: chinnu.id, amount: 499, active: true },
+      { id: uid(), title: "Spotify Membership", personId: chinnu.id, amount: 179, active: true },
+    ],
+    payments: [
+      { id: uid(), personId: chinnu.id, billMonth: "Sep 26", amount: 0 },
+      { id: uid(), personId: chinnu.id, billMonth: "Oct 26", amount: 70.7 },
+    ],
+    meta: { pin: "", gasUrl: "", defaultCardId: "c-icici" },
+  };
+}
+
+/* ---------------- persistence ---------------- */
+
+function inGas() {
+  return typeof google !== "undefined" && google.script && google.script.run;
+}
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = "deepu_cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    const script = document.createElement("script");
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("Google Sheet timed out"));
+    }, 20000);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cb];
+      script.remove();
+    }
+    window[cb] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error("Could not reach Google")); };
+    script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
+    document.head.appendChild(script);
+  });
+}
+
+function gasRun(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+  });
+}
+
+const Store = {
+  async load() {
+    if (inGas()) {
+      const remote = await gasRun("getAllData");
+      if (remote && remote.people) return remote;
+    }
+    const gasUrl = (JSON.parse(localStorage.getItem(LS_KEY) || "null") || {}).meta?.gasUrl;
+    if (gasUrl) {
+      try {
+        const res = await jsonp(gasUrl.replace(/\/$/, "") + "?action=load");
+        if (res && res.ok && res.data && res.data.people) {
+          const merged = res.data;
+          merged.meta = merged.meta || {};
+          merged.meta.gasUrl = gasUrl;
+          return merged;
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+    const local = localStorage.getItem(LS_KEY);
+    return local ? JSON.parse(local) : demoData();
+  },
+
+  async save(data) {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    if (inGas()) {
+      await gasRun("saveAllData", data);
+      return { ok: true, where: "sheet" };
+    }
+    const gasUrl = data.meta?.gasUrl;
+    if (!gasUrl) return { ok: true, where: "browser" };
+    const payload = JSON.stringify(data);
+    const size = 1400;
+    const chunks = [];
+    for (let i = 0; i < payload.length; i += size) chunks.push(payload.slice(i, i + size));
+    const token = uid();
+    const base = gasUrl.replace(/\/$/, "");
+    await jsonp(`${base}?action=saveStart&token=${encodeURIComponent(token)}&n=${chunks.length}`);
+    for (let i = 0; i < chunks.length; i++) {
+      await jsonp(`${base}?action=saveChunk&token=${encodeURIComponent(token)}&i=${i}&c=${encodeURIComponent(chunks[i])}`);
+    }
+    const res = await jsonp(`${base}?action=saveCommit&token=${encodeURIComponent(token)}`);
+    if (!res || !res.ok) throw new Error(res?.error || "Save to Sheet failed");
+    return { ok: true, where: "sheet" };
+  },
+
+  async exportBills(personName, leftMonth, rightMonth) {
+    if (inGas()) return gasRun("generateFormattedBills", personName, leftMonth, rightMonth);
+    const gasUrl = state.data.meta?.gasUrl;
+    if (!gasUrl) throw new Error("Connect Google Sheets in Settings first.");
+    const url = `${gasUrl.replace(/\/$/, "")}?action=export&person=${encodeURIComponent(personName)}&left=${encodeURIComponent(leftMonth)}&right=${encodeURIComponent(rightMonth)}`;
+    const res = await jsonp(url);
+    if (!res || !res.ok) throw new Error(res?.error || "Export failed");
+    return res.data;
+  },
+};
+
+/* ---------------- state ---------------- */
+
+const state = {
+  data: emptyData(),
+  view: "bills",
+  personId: null,
+  leftMonth: "Sep 26",
+  billPane: 0,
+  saving: false,
+  deferredInstall: null,
+};
+
+function visibleBillMonth() {
+  const right = addMonthsObj(parseMonth(state.leftMonth), 1).key;
+  return state.billPane === 1 ? right : state.leftMonth;
+}
+
+function applyBillPane() {
+  document.body.dataset.billPane = String(state.billPane);
+  document.querySelectorAll(".due-card[data-pane]").forEach((card) => {
+    card.classList.toggle("active", Number(card.dataset.pane) === state.billPane);
+  });
+}
+
+function personById(id) {
+  return state.data.people.find((p) => p.id === id);
+}
+
+function currentPerson() {
+  return personById(state.personId) || state.data.people[0] || null;
+}
+
+function paymentFor(personId, month) {
+  return state.data.payments.find((p) => p.personId === personId && p.billMonth === month);
+}
+
+function num(v) {
+  if (v === "" || v == null) return 0;
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function emiLine(emi, monthKey) {
+  const start = parseMonth(emi.startBillMonth);
+  const target = parseMonth(monthKey);
+  if (!start || !target) return null;
+  const offset = monthDiff(start, target);
+  const n = Number(emi.startN) + offset;
+  if (n < 1 || n > Number(emi.totalMonths)) return null;
+  const note = emi.note ? ` (${emi.note})` : "";
+  return {
+    date: addCalendarMonths(emi.startDate, offset),
+    description: `${emi.title} ${ordinal(n)} EMI Of ${emi.totalMonths}M${note}`,
+    amount: Number(emi.amount),
+    kind: "emi",
+    emiId: emi.id,
+  };
+}
+
+function buildBill(personId, monthKey) {
+  const purchases = state.data.purchases
+    .filter((x) => x.personId === personId && x.billMonth === monthKey)
+    .map((x) => ({
+      id: x.id,
+      date: x.date || "",
+      description: x.description,
+      amount: x.amount === "" || x.amount == null ? "" : Number(x.amount),
+      kind: "purchase",
+    }));
+  const emis = state.data.emis
+    .filter((x) => x.personId === personId)
+    .map((e) => emiLine(e, monthKey))
+    .filter(Boolean);
+  const subs = state.data.subscriptions
+    .filter((x) => x.personId === personId && x.active !== false)
+    .map((s) => ({
+      id: s.id,
+      date: "Monthly",
+      description: s.title,
+      amount: Number(s.amount),
+      kind: "sub",
+    }));
+  const lines = [...purchases, ...emis, ...subs];
+  const purchTotal = lines.reduce((s, r) => s + num(r.amount), 0);
+  const pay = num(paymentFor(personId, monthKey)?.amount);
+  return {
+    monthKey,
+    purchases,
+    recurring: [...emis, ...subs],
+    purchTotal,
+    payment: pay,
+    total: purchTotal - pay,
+  };
+}
+
+async function persist(flash) {
+  try {
+    state.saving = true;
+    const res = await Store.save(state.data);
+    if (flash) toast(flash);
+    return res;
+  } catch (err) {
+    toast(err.message || "Could not save", true);
+    return null;
+  } finally {
+    state.saving = false;
+  }
+}
+
+function toast(msg, isErr) {
+  let el = document.querySelector(".toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "toast";
+    document.body.appendChild(el);
+  }
+  el.style.background = isErr ? "#9c2b20" : "#1c1916";
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.hidden = true; }, 2800);
+}
+
+/* ---------------- render ---------------- */
+
+function render() {
+  const person = currentPerson();
+  document.body.dataset.view = state.view;
+  document.body.dataset.billPane = String(state.billPane);
+  $("cycle-label").textContent = cycleLabel(state.leftMonth);
+  $("top-eyebrow").textContent = state.view === "bills" ? "Statement cycle" : "Deepu Ledger";
+  $("top-title").textContent = state.view === "bills"
+    ? (person ? `${person.name}'s bills` : "Add a person to start")
+    : ({ emis: "EMI schedules", subs: "Monthly charges", people: "People", cards: "Credit cards", settings: "More" }[state.view] || "Deepu Ledger");
+
+  document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
+  ["bills","emis","subs","people","cards","settings"].forEach((v) => {
+    const el = $(`view-${v}`);
+    const off = state.view !== v;
+    el.classList.toggle("hidden", off);
+    el.hidden = off;
+  });
+
+  renderPeopleRail();
+  if (state.view === "bills") renderBills();
+  if (state.view === "emis") renderEmis();
+  if (state.view === "subs") renderSubs();
+  if (state.view === "people") renderPeople();
+  if (state.view === "cards") renderCards();
+  if (state.view === "settings") renderSettings();
+}
+
+function renderPeopleRail() {
+  const el = $("people-rail");
+  if (!state.data.people.length) {
+    el.innerHTML = `<p class="muted" style="padding:8px">No people yet.</p>`;
+    return;
+  }
+  const left = state.leftMonth;
+  const right = addMonthsObj(parseMonth(left), 1).key;
+  el.innerHTML = state.data.people.map((p) => {
+    const due = buildBill(p.id, left).total + buildBill(p.id, right).total;
+    return `<button class="person-chip ${p.id === state.personId ? "active" : ""}" data-person="${p.id}" type="button">
+      <span class="avatar" style="background:${colorFor(p.name)}">${esc(initials(p.name))}</span>
+      <span><b>${esc(p.name)}</b><small>${formatINR(due)} this cycle</small></span>
+    </button>`;
+  }).join("");
+  el.querySelectorAll("[data-person]").forEach((b) => {
+    b.onclick = () => { state.personId = b.dataset.person; state.view = "bills"; render(); };
+  });
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+}
+
+function bindBillSwipe(root) {
+  const pair = root.querySelector(".bills-pair");
+  if (!pair) return;
+  let startX = null;
+  pair.addEventListener("touchstart", (e) => {
+    startX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  pair.addEventListener("touchend", (e) => {
+    if (startX == null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    startX = null;
+    if (Math.abs(dx) < 48) return;
+    state.billPane = dx < 0 ? 1 : 0;
+    applyBillPane();
+  }, { passive: true });
+}
+
+function renderStatement(person, monthKey) {
+  const bill = buildBill(person.id, monthKey);
+  const purchRows = bill.purchases.map((r) => rowHtml(r, monthKey)).join("")
+    || `<div class="row blank"><span></span><span class="muted">No one-off purchases</span><span></span></div>`;
+  const recRows = bill.recurring.map((r) => rowHtml(r, monthKey)).join("");
+  return `<article class="statement" data-month="${esc(monthKey)}">
+    <div class="statement-head">
+      <span>Date</span>
+      <span>Description (${esc(monthKey)})</span>
+      <span>${esc(person.name)}</span>
+    </div>
+    <div class="statement-body">
+      ${purchRows}
+      <button class="add-inline" data-add="purchase" data-month="${esc(monthKey)}" type="button">+ Add purchase to ${esc(monthKey)}</button>
+      <div class="statement-gap"></div>
+      ${recRows}
+    </div>
+    <div class="statement-foot">
+      <div class="sum-row">
+        <span class="cobalt">Payments</span>
+        <span class="crimson">Purchases</span>
+        <span class="right crimson">${formatINR(bill.purchTotal)}</span>
+      </div>
+      <div class="sum-row">
+        <button class="btn ghost" data-pay="${esc(monthKey)}" type="button" style="padding:4px 8px">${formatINR(bill.payment)}</button>
+        <span class="crimson">Total Bill</span>
+        <span class="right crimson">${formatINR(bill.total)}</span>
+      </div>
+    </div>
+  </article>`;
+}
+
+function rowHtml(r, monthKey) {
+  const amt = r.amount === "" || r.amount == null ? "" : formatINR(r.amount);
+  const pending = r.amount === "" || r.amount == null;
+  const canEdit = r.kind === "purchase";
+  return `<div class="row ${pending ? "pending" : ""}" ${canEdit ? `data-edit="${r.id}"` : ""} data-month="${esc(monthKey)}">
+    <span class="date">${esc(formatDate(r.date) || "—")}</span>
+    <span>${esc(r.description)}</span>
+    <span class="amt">${esc(amt)}</span>
+  </div>`;
+}
+
+function renderBills() {
+  const root = $("view-bills");
+  const person = currentPerson();
+  if (!person) {
+    root.innerHTML = `<div class="empty">Add Chinnu, Deepu, or anyone else you bill each month.</div>`;
+    return;
+  }
+  const left = state.leftMonth;
+  const right = addMonthsObj(parseMonth(left), 1).key;
+  const a = buildBill(person.id, left);
+  const b = buildBill(person.id, right);
+  root.innerHTML = `
+    <div class="due-strip">
+      <div class="due-card ${state.billPane === 0 ? "active" : ""}" data-pane="0"><span>${left}</span><b>${formatINR(a.total)}</b></div>
+      <div class="due-card ${state.billPane === 1 ? "active" : ""}" data-pane="1"><span>${right}</span><b>${formatINR(b.total)}</b></div>
+      <div class="due-card total"><span>Cycle total</span><b>${formatINR(a.total + b.total)}</b></div>
+    </div>
+    <div class="bills-pair">
+      ${renderStatement(person, left)}
+      ${renderStatement(person, right)}
+    </div>`;
+  applyBillPane();
+  root.querySelectorAll(".due-card[data-pane]").forEach((card) => {
+    card.onclick = () => {
+      state.billPane = Number(card.dataset.pane);
+      applyBillPane();
+    };
+  });
+  bindBillSwipe(root);
+  root.querySelectorAll("[data-add]").forEach((btn) => {
+    btn.onclick = () => openPurchaseModal({ billMonth: btn.dataset.month, personId: person.id });
+  });
+  root.querySelectorAll("[data-edit]").forEach((row) => {
+    row.onclick = () => {
+      const item = state.data.purchases.find((p) => p.id === row.dataset.edit);
+      if (item) openPurchaseModal(item);
+    };
+  });
+  root.querySelectorAll("[data-pay]").forEach((btn) => {
+    btn.onclick = () => openPaymentModal(person.id, btn.dataset.pay);
+  });
+}
+
+function renderEmis() {
+  const root = $("view-emis");
+  root.innerHTML = `
+    <div class="toolbar">
+      <p class="hint">Add an EMI once. Every later month increments 1st → 2nd → 3rd automatically, then stops.</p>
+      <button class="btn primary" id="emi-new" type="button">Add EMI</button>
+    </div>
+    <div class="table-wrap">${tableOrEmpty(state.data.emis, emiTable)}</div>`;
+  $("emi-new").onclick = () => openEmiModal();
+  bindRowButtons(root);
+}
+
+function emiTable() {
+  return `<table><thead><tr><th>Item</th><th>Person</th><th class="num">EMI</th><th>Starts</th><th>Progress</th><th></th></tr></thead><tbody>
+    ${state.data.emis.map((e) => {
+      const p = personById(e.personId);
+      return `<tr>
+        <td data-label="Item"><b>${esc(e.title)}</b>${e.note ? ` <span class="muted">(${esc(e.note)})</span>` : ""}</td>
+        <td data-label="Person">${esc(p?.name || "")}</td>
+        <td class="num" data-label="EMI">${formatINR(e.amount)}</td>
+        <td data-label="Starts">${esc(e.startBillMonth)} · ${esc(ordinal(e.startN))} of ${esc(e.totalMonths)}</td>
+        <td class="muted" data-label="Date">${esc(formatDate(e.startDate))}</td>
+        <td class="table-actions actions">
+          <button class="btn" data-edit-emi="${e.id}" type="button">Edit</button>
+          <button class="btn" data-del-emi="${e.id}" type="button">Delete</button>
+        </td>
+      </tr>`;
+    }).join("")}
+  </tbody></table>`;
+}
+
+function renderSubs() {
+  const root = $("view-subs");
+  root.innerHTML = `
+    <div class="toolbar">
+      <p class="hint">These appear as <b>Monthly</b> on every person's bill until you turn them off.</p>
+      <button class="btn primary" id="sub-new" type="button">Add monthly</button>
+    </div>
+    <div class="table-wrap">${tableOrEmpty(state.data.subscriptions, subTable)}</div>`;
+  $("sub-new").onclick = () => openSubModal();
+  bindRowButtons(root);
+}
+
+function subTable() {
+  return `<table><thead><tr><th>Charge</th><th>Person</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead><tbody>
+    ${state.data.subscriptions.map((s) => `<tr>
+      <td data-label="Charge">${esc(s.title)}</td>
+      <td data-label="Person">${esc(personById(s.personId)?.name || "")}</td>
+      <td class="num" data-label="Amount">${formatINR(s.amount)}</td>
+      <td data-label="Status">${s.active === false ? "Paused" : "Active"}</td>
+      <td class="table-actions actions">
+        <button class="btn" data-edit-sub="${s.id}" type="button">Edit</button>
+        <button class="btn" data-del-sub="${s.id}" type="button">Delete</button>
+      </td>
+    </tr>`).join("")}
+  </tbody></table>`;
+}
+
+function renderPeople() {
+  const root = $("view-people");
+  root.innerHTML = `
+    <div class="toolbar">
+      <p class="hint">Each person gets their own two-month bill, the same way you keep Chinnu / Deepu sheets today.</p>
+      <button class="btn primary" id="people-new" type="button">Add person</button>
+    </div>
+    <div class="card-list">
+      ${state.data.people.map((p) => `<div class="row people-row" style="grid-template-columns:40px 1fr auto;border-bottom:1px solid var(--line)">
+        <span class="avatar" style="background:${colorFor(p.name)}">${esc(initials(p.name))}</span>
+        <b>${esc(p.name)}</b>
+        <span class="table-actions">
+          <button class="btn" data-edit-person="${p.id}" type="button">Rename</button>
+          <button class="btn" data-del-person="${p.id}" type="button">Remove</button>
+        </span>
+      </div>`).join("") || `<div class="empty">No people yet.</div>`}
+    </div>`;
+  $("people-new").onclick = () => openPersonModal();
+  bindRowButtons(root);
+}
+
+function renderCards() {
+  const root = $("view-cards");
+  root.innerHTML = `
+    <div class="toolbar">
+      <p class="hint">Closing day is only a hint when you log a purchase. You can still drop an August swipe onto the October bill.</p>
+      <button class="btn primary" id="card-new" type="button">Add card</button>
+    </div>
+    <div class="table-wrap">${tableOrEmpty(state.data.cards, () => `<table><thead><tr><th>Card</th><th>Closing day</th><th></th></tr></thead><tbody>
+      ${state.data.cards.map((c) => `<tr>
+        <td data-label="Card">${esc(c.name)}</td>
+        <td data-label="Closing day">${esc(c.closingDay)}</td>
+        <td class="table-actions actions">
+          <button class="btn" data-edit-card="${c.id}" type="button">Edit</button>
+          <button class="btn" data-del-card="${c.id}" type="button">Delete</button>
+        </td>
+      </tr>`).join("")}
+    </tbody></table>`)}</div>`;
+  $("card-new").onclick = () => openCardModal();
+  bindRowButtons(root);
+}
+
+function renderSettings() {
+  const m = state.data.meta;
+  $("view-settings").innerHTML = `
+    <div class="settings-block">
+      <h3>Install on your phone</h3>
+      <p class="hint">Same app as the computer. Add it to the home screen and it opens full-screen, even offline.</p>
+      <p class="ios-tip" id="ios-install-tip" hidden></p>
+      <div class="modal-actions" style="justify-content:flex-start;margin-top:8px">
+        <button class="btn primary" id="btn-install-settings" type="button">Install app</button>
+        <button class="btn" id="btn-open-cards" type="button">Credit cards</button>
+      </div>
+    </div>
+    <div class="settings-block">
+      <h3>Google Sheet</h3>
+      <p class="hint">Paste the Apps Script web-app URL after you deploy <code>gas/Code.gs</code>. Bills then live in your Google account. Until then, everything is saved in this browser.</p>
+      <label>Web app URL
+        <input id="gas-url" value="${esc(m.gasUrl || "")}" placeholder="https://script.google.com/macros/s/…/exec" />
+      </label>
+      <div class="modal-actions" style="margin-top:12px">
+        <button class="btn" id="btn-load-sheet" type="button">Load from Sheet</button>
+        <button class="btn primary" id="btn-save-sheet" type="button">Save URL &amp; sync</button>
+      </div>
+      <p class="muted" id="sheet-status"></p>
+    </div>
+    <div class="settings-block">
+      <h3>PIN lock</h3>
+      <p class="hint">Optional. Anyone with the link will need this PIN. Leave blank for no lock.</p>
+      <label>PIN <input id="pin-set" value="${esc(m.pin || "")}" inputmode="numeric" maxlength="8" /></label>
+      <div class="modal-actions"><button class="btn primary" id="btn-save-pin" type="button">Save PIN</button></div>
+    </div>
+    <div class="settings-block">
+      <h3>Demo &amp; reset</h3>
+      <p class="hint">Load Chinnu's Sep–Oct 2026 bill (Ray-Ban, Prestige, EMIs, Netflix) to see the layout. Reset clears this browser copy only.</p>
+      <div class="modal-actions" style="justify-content:flex-start">
+        <button class="btn" id="btn-demo" type="button">Load Chinnu demo</button>
+        <button class="btn danger" id="btn-reset" type="button">Reset ledger</button>
+      </div>
+    </div>`;
+  $("btn-save-sheet").onclick = async () => {
+    state.data.meta.gasUrl = $("gas-url").value.trim();
+    $("sheet-status").textContent = "Saving…";
+    try {
+      const res = await persist();
+      $("sheet-status").textContent = res?.where === "sheet" || state.data.meta.gasUrl
+        ? "Saved. If the URL is valid, this ledger is now in your Sheet."
+        : "Saved in this browser.";
+      toast("Settings saved");
+    } catch (err) {
+      $("sheet-status").textContent = err.message;
+    }
+  };
+  $("btn-load-sheet").onclick = async () => {
+    state.data.meta.gasUrl = $("gas-url").value.trim();
+    localStorage.setItem(LS_KEY, JSON.stringify(state.data));
+    $("sheet-status").textContent = "Loading…";
+    try {
+      const data = await Store.load();
+      state.data = data;
+      state.personId = data.people[0]?.id || null;
+      render();
+      toast("Loaded from Sheet");
+    } catch (err) {
+      $("sheet-status").textContent = err.message;
+    }
+  };
+  $("btn-save-pin").onclick = async () => {
+    state.data.meta.pin = $("pin-set").value.trim();
+    await persist("PIN saved");
+  };
+  $("btn-demo").onclick = async () => {
+    if (!confirm("Replace current data with the Chinnu demo bill?")) return;
+    const gasUrl = state.data.meta.gasUrl;
+    state.data = demoData();
+    state.data.meta.gasUrl = gasUrl || "";
+    state.personId = "p-chinnu";
+    state.leftMonth = "Sep 26";
+    await persist("Demo loaded");
+    state.view = "bills";
+    render();
+  };
+  $("btn-reset").onclick = async () => {
+    if (!confirm("Clear all people, bills, EMIs and payments in this browser?")) return;
+    const gasUrl = state.data.meta.gasUrl;
+    state.data = emptyData();
+    state.data.meta.gasUrl = gasUrl || "";
+    state.personId = null;
+    await persist("Ledger cleared");
+    render();
+  };
+  $("btn-open-cards").onclick = () => { state.view = "cards"; render(); };
+  $("btn-install-settings").onclick = () => promptInstall(true);
+  const tip = $("ios-install-tip");
+  if (isIos() && !isStandalone()) {
+    tip.hidden = false;
+    tip.textContent = "iPhone / iPad: open this page in Safari, tap Share, then Add to Home Screen.";
+  }
+}
+
+function tableOrEmpty(arr, fn) {
+  return arr.length ? fn() : `<div class="empty">Nothing here yet.</div>`;
+}
+
+function bindRowButtons(root) {
+  root.querySelectorAll("[data-edit-emi]").forEach((b) => b.onclick = () => openEmiModal(state.data.emis.find((x) => x.id === b.dataset.editEmi)));
+  root.querySelectorAll("[data-del-emi]").forEach((b) => b.onclick = () => removeItem("emis", b.dataset.delEmi));
+  root.querySelectorAll("[data-edit-sub]").forEach((b) => b.onclick = () => openSubModal(state.data.subscriptions.find((x) => x.id === b.dataset.editSub)));
+  root.querySelectorAll("[data-del-sub]").forEach((b) => b.onclick = () => removeItem("subscriptions", b.dataset.delSub));
+  root.querySelectorAll("[data-edit-person]").forEach((b) => b.onclick = () => openPersonModal(personById(b.dataset.editPerson)));
+  root.querySelectorAll("[data-del-person]").forEach((b) => b.onclick = () => removePerson(b.dataset.delPerson));
+  root.querySelectorAll("[data-edit-card]").forEach((b) => b.onclick = () => openCardModal(state.data.cards.find((x) => x.id === b.dataset.editCard)));
+  root.querySelectorAll("[data-del-card]").forEach((b) => b.onclick = () => removeItem("cards", b.dataset.delCard));
+}
+
+async function removeItem(key, id) {
+  if (!confirm("Delete this item?")) return;
+  state.data[key] = state.data[key].filter((x) => x.id !== id);
+  await persist("Deleted");
+  render();
+}
+
+async function removePerson(id) {
+  if (!confirm("Remove this person and their purchases, EMIs, monthly charges and payments?")) return;
+  state.data.people = state.data.people.filter((p) => p.id !== id);
+  ["purchases","emis","subscriptions","payments"].forEach((k) => {
+    state.data[k] = state.data[k].filter((x) => x.personId !== id);
+  });
+  if (state.personId === id) state.personId = state.data.people[0]?.id || null;
+  await persist("Person removed");
+  render();
+}
+
+/* ---------------- modals ---------------- */
+
+function openModal(html) {
+  const modal = $("modal");
+  $("modal-card").innerHTML = html;
+  modal.hidden = false;
+  modal.classList.remove("hidden");
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+}
+
+function closeModal() {
+  $("modal").hidden = true;
+  $("modal").classList.add("hidden");
+  $("modal-card").innerHTML = "";
+}
+
+function peopleOptions(selected) {
+  return state.data.people.map((p) => `<option value="${p.id}" ${p.id === selected ? "selected" : ""}>${esc(p.name)}</option>`).join("");
+}
+
+function cardOptions(selected) {
+  return `<option value="">—</option>` + state.data.cards.map((c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+}
+
+function monthOptions(selected) {
+  const start = parseMonth("Jan 25");
+  const opts = [];
+  for (let i = 0; i < 48; i++) {
+    const m = addMonthsObj(start, i);
+    opts.push(`<option value="${m.key}" ${m.key === selected ? "selected" : ""}>${m.key}</option>`);
+  }
+  return opts.join("");
+}
+
+function openPurchaseModal(item) {
+  const isNew = !item?.id;
+  const personId = item?.personId || state.personId;
+  openModal(`
+    <h2>${isNew ? "Add purchase" : "Edit purchase"}</h2>
+    <div class="form-grid">
+      <label>Date <input id="f-date" type="date" value="${item?.date ? toISODate(item.date) : ""}" /></label>
+      <label>Bill month <select id="f-month">${monthOptions(item?.billMonth || state.leftMonth)}</select></label>
+      <label class="full">Description <input id="f-desc" value="${esc(item?.description || "")}" placeholder="Ray-ban Glasses" /></label>
+      <label>Amount (₹) <input id="f-amt" type="number" step="0.01" min="0" value="${item?.amount ?? ""}" placeholder="Leave blank if pending" /></label>
+      <label>Person <select id="f-person">${peopleOptions(personId)}</select></label>
+      <label class="full">Card <select id="f-card">${cardOptions(item?.cardId || state.data.meta.defaultCardId)}</select></label>
+    </div>
+    <div class="modal-actions">
+      ${isNew ? "" : `<button class="btn danger" id="f-del" type="button">Delete</button>`}
+      <button class="btn" id="f-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="f-save" type="button">Save</button>
+    </div>`);
+  $("f-cancel").onclick = closeModal;
+  $("f-save").onclick = async () => {
+    const rec = {
+      id: item?.id || uid(),
+      date: $("f-date").value ? formatDate($("f-date").value) : "",
+      description: $("f-desc").value.trim(),
+      amount: $("f-amt").value === "" ? "" : Number($("f-amt").value),
+      personId: $("f-person").value,
+      billMonth: $("f-month").value,
+      cardId: $("f-card").value,
+    };
+    if (!rec.description) return toast("Description is required", true);
+    const idx = state.data.purchases.findIndex((p) => p.id === rec.id);
+    if (idx >= 0) state.data.purchases[idx] = rec;
+    else state.data.purchases.push(rec);
+    closeModal();
+    await persist("Purchase saved");
+    render();
+  };
+  const del = $("f-del");
+  if (del) del.onclick = async () => {
+    state.data.purchases = state.data.purchases.filter((p) => p.id !== item.id);
+    closeModal();
+    await persist("Purchase deleted");
+    render();
+  };
+}
+
+function openEmiModal(item) {
+  const isNew = !item?.id;
+  openModal(`
+    <h2>${isNew ? "Add EMI" : "Edit EMI"}</h2>
+    <p class="hint">Logged once. Each bill month shows the next installment and date.</p>
+    <div class="form-grid">
+      <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Gigabyte 5070Ti" /></label>
+      <label>Person <select id="f-person">${peopleOptions(item?.personId || state.personId)}</select></label>
+      <label>Monthly EMI (₹) <input id="f-amt" type="number" step="0.01" value="${item?.amount ?? ""}" /></label>
+      <label>First bill month <select id="f-month">${monthOptions(item?.startBillMonth || state.leftMonth)}</select></label>
+      <label>First EMI date <input id="f-date" type="date" value="${item?.startDate ? toISODate(item.startDate) : ""}" /></label>
+      <label>Starting installment # <input id="f-startn" type="number" min="1" value="${item?.startN || 1}" /></label>
+      <label>Total months <input id="f-total" type="number" min="1" value="${item?.totalMonths || 12}" /></label>
+      <label>Note <input id="f-note" value="${esc(item?.note || "")}" placeholder="Half" /></label>
+      <label>Card <select id="f-card">${cardOptions(item?.cardId)}</select></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="f-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="f-save" type="button">Save</button>
+    </div>`);
+  $("f-cancel").onclick = closeModal;
+  $("f-save").onclick = async () => {
+    const rec = {
+      id: item?.id || uid(),
+      title: $("f-title").value.trim(),
+      personId: $("f-person").value,
+      amount: Number($("f-amt").value),
+      startBillMonth: $("f-month").value,
+      startDate: $("f-date").value ? formatDate($("f-date").value) : "",
+      startN: Number($("f-startn").value) || 1,
+      totalMonths: Number($("f-total").value) || 1,
+      note: $("f-note").value.trim(),
+      cardId: $("f-card").value,
+    };
+    if (!rec.title) return toast("Title is required", true);
+    const idx = state.data.emis.findIndex((p) => p.id === rec.id);
+    if (idx >= 0) state.data.emis[idx] = rec;
+    else state.data.emis.push(rec);
+    closeModal();
+    await persist("EMI saved");
+    render();
+  };
+}
+
+function openSubModal(item) {
+  const isNew = !item?.id;
+  openModal(`
+    <h2>${isNew ? "Add monthly charge" : "Edit monthly charge"}</h2>
+    <div class="form-grid">
+      <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Netflix Membership" /></label>
+      <label>Person <select id="f-person">${peopleOptions(item?.personId || state.personId)}</select></label>
+      <label>Amount (₹) <input id="f-amt" type="number" step="0.01" value="${item?.amount ?? ""}" /></label>
+      <label class="full">Active
+        <select id="f-active">
+          <option value="yes" ${item?.active === false ? "" : "selected"}>Yes — show every month</option>
+          <option value="no" ${item?.active === false ? "selected" : ""}>Paused</option>
+        </select>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="f-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="f-save" type="button">Save</button>
+    </div>`);
+  $("f-cancel").onclick = closeModal;
+  $("f-save").onclick = async () => {
+    const rec = {
+      id: item?.id || uid(),
+      title: $("f-title").value.trim(),
+      personId: $("f-person").value,
+      amount: Number($("f-amt").value),
+      active: $("f-active").value === "yes",
+    };
+    if (!rec.title) return toast("Title is required", true);
+    const idx = state.data.subscriptions.findIndex((p) => p.id === rec.id);
+    if (idx >= 0) state.data.subscriptions[idx] = rec;
+    else state.data.subscriptions.push(rec);
+    closeModal();
+    await persist("Monthly charge saved");
+    render();
+  };
+}
+
+function openPersonModal(item) {
+  openModal(`
+    <h2>${item ? "Rename person" : "Add person"}</h2>
+    <label>Name <input id="f-name" value="${esc(item?.name || "")}" placeholder="Chinnu" /></label>
+    <div class="modal-actions">
+      <button class="btn" id="f-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="f-save" type="button">Save</button>
+    </div>`);
+  $("f-cancel").onclick = closeModal;
+  $("f-save").onclick = async () => {
+    const name = $("f-name").value.trim();
+    if (!name) return toast("Name is required", true);
+    if (item) item.name = name;
+    else {
+      const rec = { id: uid(), name };
+      state.data.people.push(rec);
+      state.personId = rec.id;
+    }
+    closeModal();
+    await persist("Person saved");
+    render();
+  };
+}
+
+function openCardModal(item) {
+  openModal(`
+    <h2>${item ? "Edit card" : "Add card"}</h2>
+    <div class="form-grid">
+      <label>Name <input id="f-name" value="${esc(item?.name || "")}" placeholder="Card ICICI" /></label>
+      <label>Closing day <input id="f-day" type="number" min="1" max="31" value="${item?.closingDay || 22}" /></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="f-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="f-save" type="button">Save</button>
+    </div>`);
+  $("f-cancel").onclick = closeModal;
+  $("f-save").onclick = async () => {
+    const rec = { id: item?.id || uid(), name: $("f-name").value.trim(), closingDay: Number($("f-day").value) || 31 };
+    if (!rec.name) return toast("Name is required", true);
+    const idx = state.data.cards.findIndex((p) => p.id === rec.id);
+    if (idx >= 0) state.data.cards[idx] = rec;
+    else state.data.cards.push(rec);
+    closeModal();
+    await persist("Card saved");
+    render();
+  };
+}
+
+function openPaymentModal(personId, month) {
+  const existing = paymentFor(personId, month);
+  openModal(`
+    <h2>Payment · ${esc(month)}</h2>
+    <p class="hint">Money already received for this bill. Total bill = purchases − payments.</p>
+    <label>Amount (₹) <input id="f-amt" type="number" step="0.01" min="0" value="${existing?.amount ?? 0}" /></label>
+    <div class="modal-actions">
+      <button class="btn" id="f-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="f-save" type="button">Save</button>
+    </div>`);
+  $("f-cancel").onclick = closeModal;
+  $("f-save").onclick = async () => {
+    const amount = Number($("f-amt").value) || 0;
+    if (existing) existing.amount = amount;
+    else state.data.payments.push({ id: uid(), personId, billMonth: month, amount });
+    closeModal();
+    await persist("Payment saved");
+    render();
+  };
+}
+
+/* ---------------- events ---------------- */
+
+function bindChrome() {
+  document.querySelectorAll(".nav-btn").forEach((b) => {
+    b.onclick = () => { state.view = b.dataset.view; render(); };
+  });
+  $("cycle-prev").onclick = () => { state.leftMonth = addMonthsObj(parseMonth(state.leftMonth), -2).key; render(); };
+  $("cycle-next").onclick = () => { state.leftMonth = addMonthsObj(parseMonth(state.leftMonth), 2).key; render(); };
+  $("btn-add-person").onclick = () => openPersonModal();
+  $("btn-add-item").onclick = () => {
+    const p = currentPerson();
+    if (!p) return openPersonModal();
+    openPurchaseModal({ billMonth: visibleBillMonth(), personId: p.id });
+  };
+  $("btn-print").onclick = () => window.print();
+  $("btn-export").onclick = async () => {
+    const person = currentPerson();
+    if (!person) return toast("Add a person first", true);
+    const right = addMonthsObj(parseMonth(state.leftMonth), 1).key;
+    try {
+      toast("Writing bill tab…");
+      const name = await Store.exportBills(person.name, state.leftMonth, right);
+      toast("Wrote tab: " + (name || `${person.name} ${cycleLabel(state.leftMonth)}`));
+    } catch (err) {
+      toast(err.message, true);
+    }
+  };
+}
+
+function maybeLock() {
+  const pin = state.data.meta?.pin;
+  if (!pin) return false;
+  if (sessionStorage.getItem(LS_PIN_OK) === "1") return false;
+  $("lock-screen").hidden = false;
+  $("lock-screen").classList.remove("hidden");
+  $("app").style.display = "none";
+  $("pin-unlock").onclick = () => {
+    if ($("pin-input").value === pin) {
+      sessionStorage.setItem(LS_PIN_OK, "1");
+      $("lock-screen").hidden = true;
+      $("app").style.display = "";
+    } else {
+      $("pin-error").hidden = false;
+      $("pin-error").classList.remove("hidden");
+      $("pin-error").textContent = "Wrong PIN";
+    }
+  };
+  $("pin-input").onkeydown = (e) => { if (e.key === "Enter") $("pin-unlock").click(); };
+  return true;
+}
+
+async function init() {
+  bindChrome();
+  try {
+    state.data = await Store.load();
+  } catch (err) {
+    state.data = JSON.parse(localStorage.getItem(LS_KEY) || "null") || demoData();
+    toast("Working offline from this browser", true);
+  }
+  if (!state.data.people) state.data = demoData();
+  state.personId = state.data.people[0]?.id || null;
+  const now = new Date();
+  const thisMonth = formatMonth(now.getMonth(), now.getFullYear());
+  const parsed = parseMonth(thisMonth);
+  state.leftMonth = parsed.m % 2 === 0 ? thisMonth : addMonthsObj(parsed, -1).key;
+  if (state.data.purchases.some((p) => p.billMonth === "Sep 26")) state.leftMonth = "Sep 26";
+  maybeLock();
+  setupPwa();
+  render();
+}
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+function setupPwa() {
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    state.deferredInstall = e;
+    showInstallBar("Install Deepu Ledger on this phone for the full-screen app.");
+  });
+  if (isIos() && !isStandalone() && !sessionStorage.getItem("deepu-install-dismissed")) {
+    showInstallBar("iPhone: tap Share, then Add to Home Screen.");
+    $("btn-install").textContent = "How?";
+  }
+  $("btn-install").onclick = () => promptInstall(true);
+  $("btn-install-dismiss").onclick = () => {
+    sessionStorage.setItem("deepu-install-dismissed", "1");
+    hideInstallBar();
+  };
+}
+
+function showInstallBar(copy) {
+  if (isStandalone()) return;
+  const bar = $("install-bar");
+  $("install-copy").textContent = copy;
+  bar.hidden = false;
+  bar.classList.remove("hidden");
+}
+
+function hideInstallBar() {
+  $("install-bar").hidden = true;
+  $("install-bar").classList.add("hidden");
+}
+
+async function promptInstall(fromSettings) {
+  if (state.deferredInstall) {
+    state.deferredInstall.prompt();
+    await state.deferredInstall.userChoice;
+    state.deferredInstall = null;
+    hideInstallBar();
+    return;
+  }
+  if (isIos()) {
+    toast("Safari → Share → Add to Home Screen");
+    showInstallBar("iPhone: tap Share, then Add to Home Screen.");
+    return;
+  }
+  if (fromSettings) toast("Use your browser menu: Install app / Add to Home screen");
+}
+
+init();
+
+</script>
+</body>
+</html>
