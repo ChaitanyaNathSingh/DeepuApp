@@ -42,8 +42,9 @@ The public site starts **empty**. To keep bills in your Google account:
 5. **Deploy → New deployment → Web app**
    - Execute as: **Me**
    - Who has access: **Anyone** (required so the website can save)
-6. Authorize, copy the URL ending in `/exec`.
-7. In Deepu Ledger open **More → Connect Google Sheet**, paste the URL, tap **Save & connect**.
+6. Google shows **“Google hasn’t verified this app.”** That is expected. Click **Advanced** → **Go to Deepu Ledger (unsafe)** → **Allow**. You are the developer (`mchaitanyanathsingh@gmail.com`); the script only opens the Sheet it is attached to.
+7. Copy the URL ending in `/exec`.
+8. In Deepu Ledger open **More → Connect Google Sheet**, paste the URL, tap **Save & connect**.
 
 **Write to Sheet** on Bills creates a formatted tab such as `Chinnu Sep-Oct 26`.
 

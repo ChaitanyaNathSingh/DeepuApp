@@ -1,6 +1,9 @@
 /**
  * Deepu Ledger — Google Sheets backend
- * Bound this script to a spreadsheet named "Deepu Ledger", then Deploy → Web app.
+ * Bind this script to spreadsheet "Deepu Ledger", then Deploy → Web app.
+ *
+ * If Google says it has not verified the app: Advanced → Go to Deepu Ledger (unsafe) → Allow.
+ * That screen appears for every personal script. You are the owner.
  */
 
 const SHEETS = ["People", "Cards", "Purchases", "Emis", "Subscriptions", "Payments", "Meta"];

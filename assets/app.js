@@ -686,14 +686,15 @@ function renderSettings() {
     </div>
     <div class="settings-block">
       <h3>Connect Google Sheet</h3>
-      <p class="hint">Do this once. After that, every phone and laptop uses the same bills.</p>
+      <p class="ios-tip">If Google blocks the next screen, use <b>Advanced</b> then <b>Go to … (unsafe)</b>. You are the developer. Google only shows that warning because this ledger is not a Play Store app.</p>
       <ol class="setup-steps">
         <li>Create a Google Sheet named <b>Deepu Ledger</b>.</li>
         <li>In that Sheet: <b>Extensions → Apps Script</b>. Delete the starter function.</li>
         <li>Open <a href="${GAS_CODE_URL}" target="_blank" rel="noopener">Code.gs</a>, copy all, paste into Apps Script <code>Code.gs</code>.</li>
         <li>In Apps Script click <b>+</b> → <b>HTML</b>, name it exactly <code>Index</code>. Open <a href="${GAS_HTML_URL}" target="_blank" rel="noopener">Index.html</a>, copy all, paste there.</li>
-        <li><b>Deploy → New deployment → Web app</b>. Execute as <b>Me</b>. Who has access: <b>Anyone</b> (needed so this website can save). Authorize, then copy the URL that ends with <code>/exec</code>.</li>
-        <li>Paste that URL below and tap <b>Save &amp; connect</b>.</li>
+        <li><b>Deploy → New deployment → Web app</b>. Execute as <b>Me</b>. Who has access: <b>Anyone</b>.</li>
+        <li>Google will say <b>“Google hasn’t verified this app”</b>. That is normal for your own script. Click <b>Advanced</b> → <b>Go to Deepu Ledger (unsafe)</b> → <b>Allow</b>. It is your account (<code>mchaitanyanathsingh@gmail.com</code>) talking to your own Sheet — not a third-party app.</li>
+        <li>Copy the URL that ends with <code>/exec</code>, paste it below, tap <b>Save &amp; connect</b>.</li>
       </ol>
       <label>Web app URL
         <input id="gas-url" value="${esc(m.gasUrl || "")}" placeholder="https://script.google.com/macros/s/…/exec" />
