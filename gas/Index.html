@@ -682,11 +682,7 @@ function cycleLabel(left) {
 function emptyData() {
   return {
     people: [],
-    cards: [
-      { id: uid(), name: "Card ICICI", closingDay: 22 },
-      { id: uid(), name: "Card Amex", closingDay: 25 },
-      { id: uid(), name: "Deepu SBI Card", closingDay: 22 },
-    ],
+    cards: [],
     purchases: [],
     emis: [],
     subscriptions: [],
@@ -872,11 +868,19 @@ function formatRate(n) {
 function suggestedEmi(principal, annualRate, months) {
   const P = Number(principal);
   const n = Number(months);
-  const annual = Number(annualRate);
+  const annual = annualRate === "" || annualRate == null ? 0 : Number(annualRate);
   if (!(P > 0 && n > 0) || Number.isNaN(annual) || annual < 0) return null;
-  if (annual === 0) return P / n;
+  if (annual === 0) return Math.round((P / n) * 100) / 100;
   const r = annual / 12 / 100;
-  return P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  const emi = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  if (!Number.isFinite(emi) || emi <= 0) return null;
+  return Math.round(emi * 100) / 100;
+}
+
+function emiMonthlyAmount(emi) {
+  const stored = Number(emi?.amount);
+  if (stored > 0) return Math.round(stored * 100) / 100;
+  return suggestedEmi(emi?.principal, emi?.interestRate, emi?.totalMonths) || 0;
 }
 
 function sanitizeData(data) {
@@ -884,12 +888,13 @@ function sanitizeData(data) {
   if (!data || typeof data !== "object") return base;
   const next = {
     people: Array.isArray(data.people) ? data.people : [],
-    cards: Array.isArray(data.cards) && data.cards.length ? data.cards : base.cards,
+    cards: Array.isArray(data.cards) ? data.cards : [],
     purchases: Array.isArray(data.purchases) ? data.purchases : [],
     emis: (Array.isArray(data.emis) ? data.emis : []).map((e) => ({
       ...e,
       interestRate: e.interestRate === "" || e.interestRate == null ? "" : Number(e.interestRate),
       principal: e.principal === "" || e.principal == null ? "" : Number(e.principal),
+      amount: emiMonthlyAmount(e),
     })),
     subscriptions: Array.isArray(data.subscriptions) ? data.subscriptions : [],
     payments: Array.isArray(data.payments) ? data.payments : [],
@@ -927,7 +932,7 @@ function emiLine(emi, monthKey) {
   return {
     date: addCalendarMonths(emi.startDate, offset),
     description: `${emi.title} ${ordinal(n)} EMI Of ${emi.totalMonths}M${note}${rate}`,
-    amount: Number(emi.amount),
+    amount: emiMonthlyAmount(emi),
     kind: "emi",
     emiId: emi.id,
   };
@@ -1106,7 +1111,7 @@ function renderBills() {
   const root = $("view-bills");
   const person = currentPerson();
   if (!person) {
-    root.innerHTML = `<div class="empty">Add Chinnu, Deepu, or anyone else you bill each month.</div>`;
+    root.innerHTML = `<div class="empty">Add a person to start a bill.</div>`;
     return;
   }
   const left = state.leftMonth;
@@ -1164,7 +1169,7 @@ function emiTable() {
       return `<tr>
         <td data-label="Item"><b>${esc(e.title)}</b>${e.note ? ` <span class="muted">(${esc(e.note)})</span>` : ""}</td>
         <td data-label="Person">${esc(p?.name || "")}</td>
-        <td class="num" data-label="EMI">${formatINR(e.amount)}</td>
+        <td class="num" data-label="EMI">${formatINR(emiMonthlyAmount(e))}</td>
         <td data-label="Interest">${formatRate(e.interestRate) ? `${esc(formatRate(e.interestRate))}% p.a.` : "—"}</td>
         <td data-label="Starts">${esc(e.startBillMonth)} · ${esc(ordinal(e.startN))} of ${esc(e.totalMonths)}</td>
         <td class="muted" data-label="Date">${esc(formatDate(e.startDate))}</td>
@@ -1208,7 +1213,7 @@ function renderPeople() {
   const root = $("view-people");
   root.innerHTML = `
     <div class="toolbar">
-      <p class="hint">Each person gets their own two-month bill, the same way you keep Chinnu / Deepu sheets today.</p>
+      <p class="hint">Each person gets their own two-month bill.</p>
       <button class="btn primary" id="people-new" type="button">Add person</button>
     </div>
     <div class="card-list">
@@ -1285,9 +1290,8 @@ function renderSettings() {
     </div>
     <div class="settings-block">
       <h3>Start fresh</h3>
-      <p class="hint">The app opens empty. Sample Chinnu data is optional, only if you tap the button below.</p>
+      <p class="hint">The app opens empty. Clear this device if you want to start over.</p>
       <div class="modal-actions" style="justify-content:flex-start">
-        <button class="btn" id="btn-demo" type="button">Load sample bill</button>
         <button class="btn danger" id="btn-reset" type="button">Clear this device</button>
       </div>
     </div>`;
@@ -1329,17 +1333,6 @@ function renderSettings() {
   $("btn-save-pin").onclick = async () => {
     state.data.meta.pin = $("pin-set").value.trim();
     await persist("PIN saved");
-  };
-  $("btn-demo").onclick = async () => {
-    if (!confirm("Replace current data with the Chinnu demo bill?")) return;
-    const gasUrl = state.data.meta.gasUrl;
-    state.data = demoData();
-    state.data.meta.gasUrl = gasUrl || "";
-    state.personId = "p-chinnu";
-    state.leftMonth = "Sep 26";
-    await persist("Demo loaded");
-    state.view = "bills";
-    render();
   };
   $("btn-reset").onclick = async () => {
     if (!confirm("Clear all people, bills, EMIs and payments in this browser?")) return;
@@ -1428,8 +1421,8 @@ function openPurchaseModal(item) {
     <div class="form-grid">
       <label>Date <input id="f-date" type="date" value="${item?.date ? toISODate(item.date) : ""}" /></label>
       <label>Bill month <select id="f-month">${monthOptions(item?.billMonth || state.leftMonth)}</select></label>
-      <label class="full">Description <input id="f-desc" value="${esc(item?.description || "")}" placeholder="Ray-ban Glasses" /></label>
-      <label>Amount (₹) <input id="f-amt" type="number" step="0.01" min="0" value="${item?.amount ?? ""}" placeholder="Leave blank if pending" /></label>
+      <label class="full">Description <input id="f-desc" value="${esc(item?.description || "")}" placeholder="Description" /></label>
+      <label>Amount (₹) <input id="f-amt" type="number" step="0.01" min="0" value="${item?.amount ?? ""}" placeholder="Amount" /></label>
       <label>Person <select id="f-person">${peopleOptions(personId)}</select></label>
       <label class="full">Card <select id="f-card">${cardOptions(item?.cardId || state.data.meta.defaultCardId)}</select></label>
     </div>
@@ -1472,16 +1465,16 @@ function openEmiModal(item) {
     <h2>${isNew ? "Add EMI" : "Edit EMI"}</h2>
     <p class="hint">Logged once. Interest rate is stored on the EMI and shown on each month’s bill. Leave rate blank if you do not need it.</p>
     <div class="form-grid">
-      <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Gigabyte 5070Ti" /></label>
+      <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Title" /></label>
       <label>Person <select id="f-person">${peopleOptions(item?.personId || state.personId)}</select></label>
-      <label>Principal (₹) <input id="f-principal" type="number" step="0.01" min="0" value="${item?.principal ?? ""}" placeholder="Optional" /></label>
-      <label>Interest rate (% p.a.) <input id="f-rate" type="number" step="0.01" min="0" value="${item?.interestRate ?? ""}" placeholder="e.g. 14.5" /></label>
-      <label>Monthly EMI (₹) <input id="f-amt" type="number" step="0.01" value="${item?.amount ?? ""}" /></label>
+      <label>Principal (₹) <input id="f-principal" type="number" step="0.01" min="0" value="${item?.principal ?? ""}" placeholder="Principal" /></label>
+      <label>Interest rate (% p.a.) <input id="f-rate" type="number" step="0.01" min="0" value="${item?.interestRate ?? ""}" placeholder="Rate" /></label>
+      <label>Monthly EMI (₹) <input id="f-amt" type="number" step="0.01" min="0" value="${item?.amount ?? ""}" placeholder="Monthly EMI" /></label>
       <label>Total months <input id="f-total" type="number" min="1" value="${item?.totalMonths || 12}" /></label>
       <label>First bill month <select id="f-month">${monthOptions(item?.startBillMonth || state.leftMonth)}</select></label>
       <label>First EMI date <input id="f-date" type="date" value="${item?.startDate ? toISODate(item.startDate) : ""}" /></label>
       <label>Starting installment # <input id="f-startn" type="number" min="1" value="${item?.startN || 1}" /></label>
-      <label>Note <input id="f-note" value="${esc(item?.note || "")}" placeholder="Half" /></label>
+      <label>Note <input id="f-note" value="${esc(item?.note || "")}" placeholder="Note" /></label>
       <label class="full">Card <select id="f-card">${cardOptions(item?.cardId)}</select></label>
       <p class="hint full" id="f-emi-hint"></p>
     </div>
@@ -1490,25 +1483,42 @@ function openEmiModal(item) {
       <button class="btn primary" id="f-save" type="button">Save</button>
     </div>`);
   $("f-cancel").onclick = closeModal;
+  let emiManual = Number(item?.amount) > 0;
+  const resolveEmiAmount = () => {
+    const raw = $("f-amt").value.trim();
+    const typed = raw === "" ? 0 : Number(raw);
+    const suggested = suggestedEmi($("f-principal").value, $("f-rate").value, $("f-total").value);
+    if (Number.isFinite(typed) && typed > 0) return Math.round(typed * 100) / 100;
+    return suggested || 0;
+  };
   const refreshHint = () => {
     const hint = $("f-emi-hint");
     if (!hint) return;
     const suggested = suggestedEmi($("f-principal").value, $("f-rate").value, $("f-total").value);
+    const amt = $("f-amt");
+    if (suggested && !emiManual) {
+      amt.value = suggested.toFixed(2);
+    }
     hint.textContent = suggested
-      ? `Suggested EMI from principal + rate: ${formatINR(suggested)}. Type the bank EMI if it is different.`
-      : "Interest is optional. Add principal + rate + months to see a suggested EMI.";
+      ? `Calculated EMI from principal + rate: ${formatINR(suggested)}. Change it if the bank EMI is different.`
+      : "Enter monthly EMI, or principal + months (and rate if you have it) to calculate it.";
   };
   ["f-principal", "f-rate", "f-total"].forEach((id) => {
     const el = $(id);
     if (el) el.addEventListener("input", refreshHint);
   });
+  $("f-amt").addEventListener("input", () => {
+    emiManual = Number($("f-amt").value) > 0;
+    if (!emiManual) refreshHint();
+  });
   refreshHint();
   $("f-save").onclick = async () => {
+    const amount = resolveEmiAmount();
     const rec = {
       id: item?.id || uid(),
       title: $("f-title").value.trim(),
       personId: $("f-person").value,
-      amount: Number($("f-amt").value),
+      amount,
       principal: $("f-principal").value === "" ? "" : Number($("f-principal").value),
       interestRate: $("f-rate").value === "" ? "" : Number($("f-rate").value),
       startBillMonth: $("f-month").value,
@@ -1519,6 +1529,7 @@ function openEmiModal(item) {
       cardId: $("f-card").value,
     };
     if (!rec.title) return toast("Title is required", true);
+    if (!(rec.amount > 0)) return toast("Enter monthly EMI, or principal + months to calculate it", true);
     const idx = state.data.emis.findIndex((p) => p.id === rec.id);
     if (idx >= 0) state.data.emis[idx] = rec;
     else state.data.emis.push(rec);
@@ -1533,7 +1544,7 @@ function openSubModal(item) {
   openModal(`
     <h2>${isNew ? "Add monthly charge" : "Edit monthly charge"}</h2>
     <div class="form-grid">
-      <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Netflix Membership" /></label>
+      <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Title" /></label>
       <label>Person <select id="f-person">${peopleOptions(item?.personId || state.personId)}</select></label>
       <label>Amount (₹) <input id="f-amt" type="number" step="0.01" value="${item?.amount ?? ""}" /></label>
       <label class="full">Active
@@ -1569,7 +1580,7 @@ function openSubModal(item) {
 function openPersonModal(item) {
   openModal(`
     <h2>${item ? "Rename person" : "Add person"}</h2>
-    <label>Name <input id="f-name" value="${esc(item?.name || "")}" placeholder="Chinnu" /></label>
+    <label>Name <input id="f-name" value="${esc(item?.name || "")}" placeholder="Name" /></label>
     <div class="modal-actions">
       <button class="btn" id="f-cancel" type="button">Cancel</button>
       <button class="btn primary" id="f-save" type="button">Save</button>
@@ -1594,7 +1605,7 @@ function openCardModal(item) {
   openModal(`
     <h2>${item ? "Edit card" : "Add card"}</h2>
     <div class="form-grid">
-      <label>Name <input id="f-name" value="${esc(item?.name || "")}" placeholder="Card ICICI" /></label>
+      <label>Name <input id="f-name" value="${esc(item?.name || "")}" placeholder="Card name" /></label>
       <label>Closing day <input id="f-day" type="number" min="1" max="31" value="${item?.closingDay || 22}" /></label>
     </div>
     <div class="modal-actions">
