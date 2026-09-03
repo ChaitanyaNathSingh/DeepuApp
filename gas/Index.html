@@ -318,6 +318,9 @@ textarea { min-height: 90px; resize: vertical; }
   padding: 18px; margin-bottom: 14px;
 }
 code { background: #efe7d6; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+.setup-steps { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.setup-steps li { margin: 8px 0; }
+.setup-steps a { color: var(--cobalt); }
 
 .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
 
@@ -616,8 +619,10 @@ body:not([data-view="bills"]) #btn-add-item { display: none; }
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const PALETTE = ["#9c2b20","#2f4f3e","#1d4e89","#6b4c2a","#4a3d6b","#1e5c5c","#8b3a3a","#3d5a45"];
-const LS_KEY = "deepu-ledger-v1";
+const LS_KEY = "deepu-ledger-v2";
 const LS_PIN_OK = "deepu-ledger-unlocked";
+const GAS_CODE_URL = "https://raw.githubusercontent.com/ChaitanyaNathSingh/DeepuApp/main/gas/Code.gs";
+const GAS_HTML_URL = "https://raw.githubusercontent.com/ChaitanyaNathSingh/DeepuApp/main/gas/Index.html";
 
 const $ = (id) => document.getElementById(id);
 
@@ -743,9 +748,9 @@ function demoData() {
       { id: uid(), date: "12-Aug-2026", description: "Signature Hotel Lakshmipuram", amount: 2700, personId: chinnu.id, billMonth: "Oct 26", cardId: "c-icici" },
     ],
     emis: [
-      { id: uid(), title: "Gigabyte 5070Ti", personId: chinnu.id, amount: 2650, startBillMonth: "Sep 26", startDate: "07-Nov-2026", startN: 1, totalMonths: 24, note: "", cardId: "c-icici" },
-      { id: uid(), title: "Apple Mac Mini", personId: chinnu.id, amount: 7541, startBillMonth: "Sep 26", startDate: "09-Nov-2026", startN: 1, totalMonths: 12, note: "", cardId: "c-icici" },
-      { id: uid(), title: "RD hp Laptop", personId: chinnu.id, amount: 4795.92, startBillMonth: "Sep 26", startDate: "09-Nov-2026", startN: 5, totalMonths: 12, note: "Half", cardId: "c-icici" },
+      { id: uid(), title: "Gigabyte 5070Ti", personId: chinnu.id, amount: 2650, interestRate: 15, principal: 0, startBillMonth: "Sep 26", startDate: "07-Nov-2026", startN: 1, totalMonths: 24, note: "", cardId: "c-icici" },
+      { id: uid(), title: "Apple Mac Mini", personId: chinnu.id, amount: 7541, interestRate: 14, principal: 0, startBillMonth: "Sep 26", startDate: "09-Nov-2026", startN: 1, totalMonths: 12, note: "", cardId: "c-icici" },
+      { id: uid(), title: "RD hp Laptop", personId: chinnu.id, amount: 4795.92, interestRate: 14, principal: 0, startBillMonth: "Sep 26", startDate: "09-Nov-2026", startN: 5, totalMonths: 12, note: "Half", cardId: "c-icici" },
     ],
     subscriptions: [
       { id: uid(), title: "iCloud+ 2TB Membership", personId: chinnu.id, amount: 143, active: true },
@@ -795,17 +800,17 @@ function gasRun(fn, ...args) {
 
 const Store = {
   async load() {
+    migrateOldStorage();
     if (inGas()) {
       const remote = await gasRun("getAllData");
-      if (remote && remote.people) return remote;
+      if (remote) return sanitizeData(remote);
     }
     const gasUrl = (JSON.parse(localStorage.getItem(LS_KEY) || "null") || {}).meta?.gasUrl;
     if (gasUrl) {
       try {
         const res = await jsonp(gasUrl.replace(/\/$/, "") + "?action=load");
-        if (res && res.ok && res.data && res.data.people) {
-          const merged = res.data;
-          merged.meta = merged.meta || {};
+        if (res && res.ok && res.data) {
+          const merged = sanitizeData(res.data);
           merged.meta.gasUrl = gasUrl;
           return merged;
         }
@@ -814,7 +819,7 @@ const Store = {
       }
     }
     const local = localStorage.getItem(LS_KEY);
-    return local ? JSON.parse(local) : demoData();
+    return sanitizeData(local ? JSON.parse(local) : emptyData());
   },
 
   async save(data) {
@@ -893,6 +898,58 @@ function num(v) {
   return Number.isNaN(n) ? 0 : n;
 }
 
+function formatRate(n) {
+  const x = Number(n);
+  if (!x) return "";
+  return Number.isInteger(x) ? String(x) : String(Math.round(x * 100) / 100);
+}
+
+function suggestedEmi(principal, annualRate, months) {
+  const P = Number(principal);
+  const n = Number(months);
+  const annual = Number(annualRate);
+  if (!(P > 0 && n > 0) || Number.isNaN(annual) || annual < 0) return null;
+  if (annual === 0) return P / n;
+  const r = annual / 12 / 100;
+  return P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+}
+
+function sanitizeData(data) {
+  const base = emptyData();
+  if (!data || typeof data !== "object") return base;
+  const next = {
+    people: Array.isArray(data.people) ? data.people : [],
+    cards: Array.isArray(data.cards) && data.cards.length ? data.cards : base.cards,
+    purchases: Array.isArray(data.purchases) ? data.purchases : [],
+    emis: (Array.isArray(data.emis) ? data.emis : []).map((e) => ({
+      ...e,
+      interestRate: e.interestRate === "" || e.interestRate == null ? "" : Number(e.interestRate),
+      principal: e.principal === "" || e.principal == null ? "" : Number(e.principal),
+    })),
+    subscriptions: Array.isArray(data.subscriptions) ? data.subscriptions : [],
+    payments: Array.isArray(data.payments) ? data.payments : [],
+    meta: { ...base.meta, ...(data.meta || {}) },
+  };
+  return next;
+}
+
+function looksLikeDemo(data) {
+  const ids = new Set((data.people || []).map((p) => p.id));
+  if (!ids.has("p-chinnu")) return false;
+  return (data.purchases || []).some((p) => String(p.description || "").includes("Ray-ban"));
+}
+
+function migrateOldStorage() {
+  if (localStorage.getItem(LS_KEY)) return;
+  const old = localStorage.getItem("deepu-ledger-v1");
+  if (!old) return;
+  try {
+    const parsed = JSON.parse(old);
+    if (looksLikeDemo(parsed)) return;
+    localStorage.setItem(LS_KEY, old);
+  } catch (err) { /* ignore broken old cache */ }
+}
+
 function emiLine(emi, monthKey) {
   const start = parseMonth(emi.startBillMonth);
   const target = parseMonth(monthKey);
@@ -901,9 +958,10 @@ function emiLine(emi, monthKey) {
   const n = Number(emi.startN) + offset;
   if (n < 1 || n > Number(emi.totalMonths)) return null;
   const note = emi.note ? ` (${emi.note})` : "";
+  const rate = formatRate(emi.interestRate) ? ` @ ${formatRate(emi.interestRate)}%` : "";
   return {
     date: addCalendarMonths(emi.startDate, offset),
-    description: `${emi.title} ${ordinal(n)} EMI Of ${emi.totalMonths}M${note}`,
+    description: `${emi.title} ${ordinal(n)} EMI Of ${emi.totalMonths}M${note}${rate}`,
     amount: Number(emi.amount),
     kind: "emi",
     emiId: emi.id,
@@ -1134,7 +1192,7 @@ function renderEmis() {
   const root = $("view-emis");
   root.innerHTML = `
     <div class="toolbar">
-      <p class="hint">Add an EMI once. Every later month increments 1st → 2nd → 3rd automatically, then stops.</p>
+      <p class="hint">Add an EMI once. Enter the bank interest rate if you want it on the bill. Each later month increments 1st → 2nd → 3rd, then stops.</p>
       <button class="btn primary" id="emi-new" type="button">Add EMI</button>
     </div>
     <div class="table-wrap">${tableOrEmpty(state.data.emis, emiTable)}</div>`;
@@ -1143,13 +1201,14 @@ function renderEmis() {
 }
 
 function emiTable() {
-  return `<table><thead><tr><th>Item</th><th>Person</th><th class="num">EMI</th><th>Starts</th><th>Progress</th><th></th></tr></thead><tbody>
+  return `<table><thead><tr><th>Item</th><th>Person</th><th class="num">EMI</th><th>Interest</th><th>Starts</th><th>Date</th><th></th></tr></thead><tbody>
     ${state.data.emis.map((e) => {
       const p = personById(e.personId);
       return `<tr>
         <td data-label="Item"><b>${esc(e.title)}</b>${e.note ? ` <span class="muted">(${esc(e.note)})</span>` : ""}</td>
         <td data-label="Person">${esc(p?.name || "")}</td>
         <td class="num" data-label="EMI">${formatINR(e.amount)}</td>
+        <td data-label="Interest">${formatRate(e.interestRate) ? `${esc(formatRate(e.interestRate))}% p.a.` : "—"}</td>
         <td data-label="Starts">${esc(e.startBillMonth)} · ${esc(ordinal(e.startN))} of ${esc(e.totalMonths)}</td>
         <td class="muted" data-label="Date">${esc(formatDate(e.startDate))}</td>
         <td class="table-actions actions">
@@ -1243,16 +1302,24 @@ function renderSettings() {
       </div>
     </div>
     <div class="settings-block">
-      <h3>Google Sheet</h3>
-      <p class="hint">Paste the Apps Script web-app URL after you deploy <code>gas/Code.gs</code>. Bills then live in your Google account. Until then, everything is saved in this browser.</p>
+      <h3>Connect Google Sheet</h3>
+      <p class="hint">Do this once. After that, every phone and laptop uses the same bills.</p>
+      <ol class="setup-steps">
+        <li>Create a Google Sheet named <b>Deepu Ledger</b>.</li>
+        <li>In that Sheet: <b>Extensions → Apps Script</b>. Delete the starter function.</li>
+        <li>Open <a href="${GAS_CODE_URL}" target="_blank" rel="noopener">Code.gs</a>, copy all, paste into Apps Script <code>Code.gs</code>.</li>
+        <li>In Apps Script click <b>+</b> → <b>HTML</b>, name it exactly <code>Index</code>. Open <a href="${GAS_HTML_URL}" target="_blank" rel="noopener">Index.html</a>, copy all, paste there.</li>
+        <li><b>Deploy → New deployment → Web app</b>. Execute as <b>Me</b>. Who has access: <b>Anyone</b> (needed so this website can save). Authorize, then copy the URL that ends with <code>/exec</code>.</li>
+        <li>Paste that URL below and tap <b>Save &amp; connect</b>.</li>
+      </ol>
       <label>Web app URL
         <input id="gas-url" value="${esc(m.gasUrl || "")}" placeholder="https://script.google.com/macros/s/…/exec" />
       </label>
       <div class="modal-actions" style="margin-top:12px">
         <button class="btn" id="btn-load-sheet" type="button">Load from Sheet</button>
-        <button class="btn primary" id="btn-save-sheet" type="button">Save URL &amp; sync</button>
+        <button class="btn primary" id="btn-save-sheet" type="button">Save &amp; connect</button>
       </div>
-      <p class="muted" id="sheet-status"></p>
+      <p class="muted" id="sheet-status">${m.gasUrl ? "Sheet URL is saved in this browser. Use Load from Sheet if this device is behind." : "Not connected yet — bills stay only on this device."}</p>
     </div>
     <div class="settings-block">
       <h3>PIN lock</h3>
@@ -1261,11 +1328,11 @@ function renderSettings() {
       <div class="modal-actions"><button class="btn primary" id="btn-save-pin" type="button">Save PIN</button></div>
     </div>
     <div class="settings-block">
-      <h3>Demo &amp; reset</h3>
-      <p class="hint">Load Chinnu's Sep–Oct 2026 bill (Ray-Ban, Prestige, EMIs, Netflix) to see the layout. Reset clears this browser copy only.</p>
+      <h3>Start fresh</h3>
+      <p class="hint">The app opens empty. Sample Chinnu data is optional, only if you tap the button below.</p>
       <div class="modal-actions" style="justify-content:flex-start">
-        <button class="btn" id="btn-demo" type="button">Load Chinnu demo</button>
-        <button class="btn danger" id="btn-reset" type="button">Reset ledger</button>
+        <button class="btn" id="btn-demo" type="button">Load sample bill</button>
+        <button class="btn danger" id="btn-reset" type="button">Clear this device</button>
       </div>
     </div>`;
   $("btn-save-sheet").onclick = async () => {
@@ -1273,9 +1340,11 @@ function renderSettings() {
     $("sheet-status").textContent = "Saving…";
     try {
       const res = await persist();
-      $("sheet-status").textContent = res?.where === "sheet" || state.data.meta.gasUrl
-        ? "Saved. If the URL is valid, this ledger is now in your Sheet."
-        : "Saved in this browser.";
+      $("sheet-status").textContent = res?.where === "sheet"
+        ? "Connected. New entries will save to your Google Sheet."
+        : (state.data.meta.gasUrl
+          ? "URL saved. If Google blocked the save, set access to Anyone and try again."
+          : "Saved on this device only.");
       toast("Settings saved");
     } catch (err) {
       $("sheet-status").textContent = err.message;
@@ -1445,29 +1514,47 @@ function openEmiModal(item) {
   const isNew = !item?.id;
   openModal(`
     <h2>${isNew ? "Add EMI" : "Edit EMI"}</h2>
-    <p class="hint">Logged once. Each bill month shows the next installment and date.</p>
+    <p class="hint">Logged once. Interest rate is stored on the EMI and shown on each month’s bill. Leave rate blank if you do not need it.</p>
     <div class="form-grid">
       <label class="full">Title <input id="f-title" value="${esc(item?.title || "")}" placeholder="Gigabyte 5070Ti" /></label>
       <label>Person <select id="f-person">${peopleOptions(item?.personId || state.personId)}</select></label>
+      <label>Principal (₹) <input id="f-principal" type="number" step="0.01" min="0" value="${item?.principal ?? ""}" placeholder="Optional" /></label>
+      <label>Interest rate (% p.a.) <input id="f-rate" type="number" step="0.01" min="0" value="${item?.interestRate ?? ""}" placeholder="e.g. 14.5" /></label>
       <label>Monthly EMI (₹) <input id="f-amt" type="number" step="0.01" value="${item?.amount ?? ""}" /></label>
+      <label>Total months <input id="f-total" type="number" min="1" value="${item?.totalMonths || 12}" /></label>
       <label>First bill month <select id="f-month">${monthOptions(item?.startBillMonth || state.leftMonth)}</select></label>
       <label>First EMI date <input id="f-date" type="date" value="${item?.startDate ? toISODate(item.startDate) : ""}" /></label>
       <label>Starting installment # <input id="f-startn" type="number" min="1" value="${item?.startN || 1}" /></label>
-      <label>Total months <input id="f-total" type="number" min="1" value="${item?.totalMonths || 12}" /></label>
       <label>Note <input id="f-note" value="${esc(item?.note || "")}" placeholder="Half" /></label>
-      <label>Card <select id="f-card">${cardOptions(item?.cardId)}</select></label>
+      <label class="full">Card <select id="f-card">${cardOptions(item?.cardId)}</select></label>
+      <p class="hint full" id="f-emi-hint"></p>
     </div>
     <div class="modal-actions">
       <button class="btn" id="f-cancel" type="button">Cancel</button>
       <button class="btn primary" id="f-save" type="button">Save</button>
     </div>`);
   $("f-cancel").onclick = closeModal;
+  const refreshHint = () => {
+    const hint = $("f-emi-hint");
+    if (!hint) return;
+    const suggested = suggestedEmi($("f-principal").value, $("f-rate").value, $("f-total").value);
+    hint.textContent = suggested
+      ? `Suggested EMI from principal + rate: ${formatINR(suggested)}. Type the bank EMI if it is different.`
+      : "Interest is optional. Add principal + rate + months to see a suggested EMI.";
+  };
+  ["f-principal", "f-rate", "f-total"].forEach((id) => {
+    const el = $(id);
+    if (el) el.addEventListener("input", refreshHint);
+  });
+  refreshHint();
   $("f-save").onclick = async () => {
     const rec = {
       id: item?.id || uid(),
       title: $("f-title").value.trim(),
       personId: $("f-person").value,
       amount: Number($("f-amt").value),
+      principal: $("f-principal").value === "" ? "" : Number($("f-principal").value),
+      interestRate: $("f-rate").value === "" ? "" : Number($("f-rate").value),
       startBillMonth: $("f-month").value,
       startDate: $("f-date").value ? formatDate($("f-date").value) : "",
       startN: Number($("f-startn").value) || 1,
@@ -1648,16 +1735,16 @@ async function init() {
   try {
     state.data = await Store.load();
   } catch (err) {
-    state.data = JSON.parse(localStorage.getItem(LS_KEY) || "null") || demoData();
+    state.data = JSON.parse(localStorage.getItem(LS_KEY) || "null") || emptyData();
+    state.data = sanitizeData(state.data);
     toast("Working offline from this browser", true);
   }
-  if (!state.data.people) state.data = demoData();
+  if (!state.data || !Array.isArray(state.data.people)) state.data = emptyData();
   state.personId = state.data.people[0]?.id || null;
   const now = new Date();
   const thisMonth = formatMonth(now.getMonth(), now.getFullYear());
   const parsed = parseMonth(thisMonth);
   state.leftMonth = parsed.m % 2 === 0 ? thisMonth : addMonthsObj(parsed, -1).key;
-  if (state.data.purchases.some((p) => p.billMonth === "Sep 26")) state.leftMonth = "Sep 26";
   maybeLock();
   setupPwa();
   render();

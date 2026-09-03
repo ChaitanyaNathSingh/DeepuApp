@@ -1,4 +1,4 @@
-const CACHE = "deepu-ledger-v2";
+const CACHE = "deepu-ledger-v3";
 const ASSETS = [
   "./",
   "./index.html",

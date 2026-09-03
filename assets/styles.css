@@ -299,6 +299,9 @@ textarea { min-height: 90px; resize: vertical; }
   padding: 18px; margin-bottom: 14px;
 }
 code { background: #efe7d6; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+.setup-steps { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.setup-steps li { margin: 8px 0; }
+.setup-steps a { color: var(--cobalt); }
 
 .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
 

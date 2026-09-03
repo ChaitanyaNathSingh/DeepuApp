@@ -73,7 +73,7 @@ function ensureSchema() {
     People: ["id", "name"],
     Cards: ["id", "name", "closingDay"],
     Purchases: ["id", "date", "description", "amount", "personId", "billMonth", "cardId"],
-    Emis: ["id", "title", "personId", "amount", "startBillMonth", "startDate", "startN", "totalMonths", "note", "cardId"],
+    Emis: ["id", "title", "personId", "amount", "interestRate", "principal", "startBillMonth", "startDate", "startN", "totalMonths", "note", "cardId"],
     Subscriptions: ["id", "title", "personId", "amount", "active"],
     Payments: ["id", "personId", "billMonth", "amount"],
     Meta: ["key", "value"],
@@ -81,8 +81,20 @@ function ensureSchema() {
   SHEETS.forEach(function (name) {
     let sh = ss.getSheetByName(name);
     if (!sh) sh = ss.insertSheet(name);
-    const have = sh.getRange(1, 1, 1, headers[name].length).getValues()[0];
-    if (have.join("") === "") sh.getRange(1, 1, 1, headers[name].length).setValues([headers[name]]).setFontWeight("bold");
+    const needed = headers[name];
+    const last = Math.max(sh.getLastColumn(), needed.length);
+    const have = sh.getRange(1, 1, 1, last).getValues()[0].map(String);
+    if (have.join("") === "") {
+      sh.getRange(1, 1, 1, needed.length).setValues([needed]).setFontWeight("bold");
+      return;
+    }
+    needed.forEach(function (h) {
+      if (have.indexOf(h) < 0) {
+        const col = sh.getLastColumn() + 1;
+        sh.getRange(1, col).setValue(h).setFontWeight("bold");
+        have.push(h);
+      }
+    });
   });
 }
 
@@ -140,6 +152,8 @@ function getAllData() {
         title: String(r.title),
         personId: String(r.personId),
         amount: Number(r.amount),
+        interestRate: r.interestRate === "" || r.interestRate == null ? "" : Number(r.interestRate),
+        principal: r.principal === "" || r.principal == null ? "" : Number(r.principal),
         startBillMonth: String(r.startBillMonth),
         startDate: formatMaybeDate(r.startDate),
         startN: Number(r.startN) || 1,
@@ -172,7 +186,7 @@ function saveAllData(data) {
     writeSheet("People", data.people || [], ["id", "name"]);
     writeSheet("Cards", data.cards || [], ["id", "name", "closingDay"]);
     writeSheet("Purchases", data.purchases || [], ["id", "date", "description", "amount", "personId", "billMonth", "cardId"]);
-    writeSheet("Emis", data.emis || [], ["id", "title", "personId", "amount", "startBillMonth", "startDate", "startN", "totalMonths", "note", "cardId"]);
+    writeSheet("Emis", data.emis || [], ["id", "title", "personId", "amount", "interestRate", "principal", "startBillMonth", "startDate", "startN", "totalMonths", "note", "cardId"]);
     writeSheet("Subscriptions", data.subscriptions || [], ["id", "title", "personId", "amount", "active"]);
     writeSheet("Payments", data.payments || [], ["id", "personId", "billMonth", "amount"]);
     const meta = data.meta || {};
@@ -245,9 +259,10 @@ function buildBill(data, personId, monthKey) {
     const n = Number(emi.startN) + offset;
     if (n < 1 || n > Number(emi.totalMonths)) return null;
     const note = emi.note ? " (" + emi.note + ")" : "";
+    const rate = Number(emi.interestRate) > 0 ? " @ " + emi.interestRate + "%" : "";
     return {
       date: addCalendarMonths(emi.startDate, offset),
-      description: emi.title + " " + ordinal(n) + " EMI Of " + emi.totalMonths + "M" + note,
+      description: emi.title + " " + ordinal(n) + " EMI Of " + emi.totalMonths + "M" + note + rate,
       amount: Number(emi.amount),
     };
   }).filter(Boolean);

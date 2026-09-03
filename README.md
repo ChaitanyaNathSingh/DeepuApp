@@ -31,25 +31,21 @@ The site URL will be:
 
 `https://<your-username>.github.io/DeepuApp/`
 
-## Google Sheets (your Google account) — this is the free hosted website
+## Connect Google Sheets (do this now)
 
-Google will give you a URL like `https://script.google.com/macros/s/…/exec`. No paid server.
+The public site starts **empty**. To keep bills in your Google account:
 
-1. Create a Google Sheet named **Deepu Ledger** (while signed into the account you want to keep the bills in).
-2. **Extensions → Apps Script**. Delete the default `myFunction`.
-3. Paste `gas/Code.gs` into `Code.gs`.
-4. Click **+** next to Files → **HTML** → name it exactly `Index`.
-5. On your computer run `python3 tools/build_gas.py`, then paste `gas/Index.html` into that file (or copy `gas/Index.html` if it is already there).
-6. **Deploy → New deployment**
-   - Type: **Web app**
+1. Create a Google Sheet named **Deepu Ledger**.
+2. **Extensions → Apps Script**. Delete the starter function.
+3. Copy [Code.gs](https://raw.githubusercontent.com/ChaitanyaNathSingh/DeepuApp/main/gas/Code.gs) into Apps Script `Code.gs`.
+4. **+ → HTML**, name it exactly `Index`. Copy [Index.html](https://raw.githubusercontent.com/ChaitanyaNathSingh/DeepuApp/main/gas/Index.html) into that file.
+5. **Deploy → New deployment → Web app**
    - Execute as: **Me**
-   - Who has access: **Only myself** (phone: use **Anyone with the link**)
-7. Click **Authorize access**, pick the same Google account, allow the Sheet permission.
-8. Open the web-app URL. Bookmark it — that is the website.
+   - Who has access: **Anyone** (required so the website can save)
+6. Authorize, copy the URL ending in `/exec`.
+7. In Deepu Ledger open **More → Connect Google Sheet**, paste the URL, tap **Save & connect**.
 
-**Write to Sheet** on the Bills screen creates a formatted tab such as `Chinnu Sep-Oct 26` with Date / Description / amount, Purchases, Payments, and Total Bill.
-
-To also use the GitHub Pages copy of the site with the same Sheet, paste that web-app URL under **Settings → Google Sheet** and set the deployment access to **Anyone**.
+**Write to Sheet** on Bills creates a formatted tab such as `Chinnu Sep-Oct 26`.
 
 ## Typical month
 
